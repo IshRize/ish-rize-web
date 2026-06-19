@@ -1,9 +1,10 @@
 # ish-rize-web
 
-The web client for **IshRize Timetable Intelligence** — a live master timetable, clash
-detection, free-room/free-slot finding, and safe timetable ingestion for universities.
-Part of the IshRize platform; it extends the existing attendance system rather than
-replacing it.
+The web client for **IshRize Scheduling Intelligence** — a live master schedule, clash
+detection, free-room/free-slot finding, and safe schedule ingestion. The core is
+**org-neutral**: a university first, churches and event organizers later, on the same
+engines. Part of the IshRize platform; it extends the existing attendance system rather
+than replacing it.
 
 > **Repo status: Phase 0 — foundation.** This repo currently contains the governing docs,
 > version-control scaffolding, and CI. The Next.js application is scaffolded in **Phase 2**
@@ -15,28 +16,30 @@ replacing it.
 ## What this is
 
 The mobile app (`ish-rize-mobile`) is the *attendance + growth* tool. This web app is the
-*timetable* tool:
+*scheduling* tool:
 
-- Digitize and edit a live master timetable (a grid of `Booking`s).
-- Detect venue, lecturer, and cohort (group) clashes.
-- Find free rooms at a slot and free slots for a cohort.
-- Ingest existing timetables (Excel / PDF) with mandatory human review.
+- Digitize and edit a live master schedule (a grid of `Booking`s).
+- Detect venue, host, and cohort (group) clashes.
+- Find free venues at a slot and free slots for a cohort.
+- Ingest existing schedules (Excel / PDF) with mandatory human review.
 
-It works for **any** university through configuration, not code branches.
+It works for **any** scheduling organization through configuration, not code branches — the
+booking atom (*a host does an activity in a venue at a time slot, for a cohort*) is true for
+a lecture, a church service, and a conference talk alike.
 
 ## The IshRize repos
 
 | Repo | Role |
 |---|---|
-| `ish-rize-backend` | Single source of truth: API, Prisma schema, **timetable engines**, sockets |
+| `ish-rize-backend` | Single source of truth: API, Prisma schema, **scheduling engines**, sockets |
 | `ish-rize-mobile` | React Native attendance app + proximity engine + student insights |
-| `ish-rize-web` | **This repo** — Next.js timetable client |
+| `ish-rize-web` | **This repo** — Next.js scheduling client |
 | `ish-rize-docs` | Canonical docs, version-control guide, decisions |
 
 ## Stack
 
 Next.js 15 (App Router, TS) · Tailwind CSS 4 · Zustand · TanStack Query + Table ·
-Socket.io client · deployed on Vercel. The backend timetable layer is Express 5 + Prisma 7
+Socket.io client · deployed on Vercel. The backend scheduling layer is Express 5 + Prisma 7
 + PostgreSQL with pure, Vitest-tested domain engines. Rationale:
 [IMPLEMENTATION_PLAN.md §4](IMPLEMENTATION_PLAN.md).
 
@@ -56,8 +59,8 @@ first — see `ish-rize-backend`.)
 | Doc | What it covers |
 |---|---|
 | [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md) | The phased build plan — what we build, in what order, and the gate for each phase |
-| [ARCHITECTURE.md](ARCHITECTURE.md) | System design, the Configuration Engine, data model, web structure |
-| [API_CONTRACT.md](API_CONTRACT.md) | The new timetable REST + WebSocket endpoints |
+| [ARCHITECTURE.md](ARCHITECTURE.md) | System design, the three layers of generality, the Configuration Engine, the org-neutral data model |
+| [API_CONTRACT.md](API_CONTRACT.md) | The new scheduling REST + WebSocket endpoints |
 | [COPILOT_CONTEXT.md](COPILOT_CONTEXT.md) | How code must be written here (read before generating code) |
 | [DEV_MODE.md](DEV_MODE.md) | The incremental, engine-first development loop |
 | [CONTRIBUTING.md](CONTRIBUTING.md) | Local setup + the contribution workflow |
@@ -66,7 +69,7 @@ first — see `ish-rize-backend`.)
 ## Phase status
 
 - ✅ **Phase 0** — repo foundation + docs
-- ⏸ **Phase 1** — Configuration Engine + schema extension *(backend)*
+- ⏸ **Phase 1** — Configuration Engine + org-neutral schema *(backend)*
 - ⏸ **Phase 2** — Booking core + Next.js grid read
 - ⏸ **Phase 3** — Clash + Availability engines + UI
 - ⏸ **Phase 4** — Real-time sync + audit

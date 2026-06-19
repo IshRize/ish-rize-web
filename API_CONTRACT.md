@@ -1,72 +1,81 @@
-# IshRize Timetable — API Contract
+# IshRize Scheduling — API Contract
 
-REST + WebSocket contract for the **timetable intelligence layer**. These endpoints are
+REST + WebSocket contract for the **scheduling intelligence layer**. These endpoints are
 **added to** the existing IshRize backend (`ish-rize-backend`), which already exposes the
 57 attendance/auth/analytics endpoints documented in that repo's `API_CONTRACT.md`. This
-document covers only the new surface the web app consumes.
+document covers only the new, **org-neutral** surface the web app consumes.
 
 ## Conventions (unchanged from the existing API)
 
 - **Base URL:** `/api`
-- **Auth:** JWT via `Authorization: Bearer <token>` (web stores it in an httpOnly cookie
-  and attaches it per request). All routes protected unless marked **(public)**.
+- **Auth:** JWT via `Authorization: Bearer <token>` (web stores it in an httpOnly cookie).
+  All routes protected unless marked **(public)**.
 - **Response envelope:** `{ "success": true, "data": ... }` or
   `{ "success": false, "message": "..." }`. The web client unwraps `data`.
-- **Roles:** `STUDENT` / `LECTURER` / `ADMIN`. Timetable write access is for
-  coordinators (`ADMIN`, and `LECTURER` acting as coordinator per existing role checks).
-- **Scoping:** every timetable resource is scoped to a `University`; queries pass the
-  relevant id (`universityId`, `academicYearId`, `termId`, `departmentId`).
-- **Audit:** every mutation writes an `AuditLog` row (existing utility).
+- **Roles:** `STUDENT` / `LECTURER` / `ADMIN`. Schedule write access is for coordinators
+  (`ADMIN`, and `LECTURER` acting as coordinator per existing role checks).
+- **Scoping:** every resource is scoped to an `Organization`; queries pass the relevant id
+  (`organizationId`, `calendarId`, `termId`, `orgUnitId`).
+- **Vocabulary:** the API speaks neutral nouns (`organizations`, `org-units`, `hosts`,
+  `activities`). The UI renders org-specific labels ("Course"/"Service", "Lecturer"/"Pastor")
+  from the config `vocabulary` map.
+- **Audit:** every mutation writes an `AuditLog` row.
 
 ---
 
-## Configuration & structure
+## Organization & structure
 
 ```
-GET    /universities/:id/config        # resolved UniversityConfig (Configuration Engine)
-POST   /universities                   (ADMIN)
-GET    /universities/:id/colleges
-POST   /colleges                       (ADMIN)
-POST   /departments                    (ADMIN)
-GET    /titles?universityId=
-POST   /titles                         (ADMIN)
+GET    /organizations/:id/config       # resolved OrgConfig (Configuration Engine)
+POST   /organizations                  (ADMIN)
+GET    /organizations/:id/org-units
+POST   /org-units                      (ADMIN)          # parentId builds the tree
 ```
 
 ## Calendar
 
 ```
-GET    /academic-years?universityId=
-POST   /academic-years                 (ADMIN / COORDINATOR)
-GET    /terms?academicYearId=
+GET    /calendars?organizationId=
+POST   /calendars                      (ADMIN / COORDINATOR)
+GET    /terms?calendarId=
 POST   /terms                          (ADMIN / COORDINATOR)
 ```
 
-## Resources
+## People & titles
 
 ```
-GET    /venues?universityId=&departmentId=
+GET    /titles?organizationId=
+POST   /titles                         (ADMIN)
+GET    /hosts?orgUnitId=
+POST   /hosts                          (ADMIN / COORDINATOR)
+```
+
+## Resources & activities
+
+```
+GET    /venues?organizationId=&orgUnitId=
 POST   /venues                         (ADMIN / COORDINATOR)
-GET    /lecturers?departmentId=
-POST   /lecturers                      (ADMIN / COORDINATOR)
+GET    /activities?orgUnitId=          # Course rows, filterable by kind
+POST   /activities                     (COORDINATOR)
 GET    /groups?termId=
 POST   /groups                         (COORDINATOR)
-POST   /groups/:id/courses             (COORDINATOR)   # link GroupCourse
-POST   /groups/:id/lecturers           (COORDINATOR)   # link GroupLecturer
+POST   /groups/:id/activities          (COORDINATOR)   # link GroupActivity
+POST   /groups/:id/hosts               (COORDINATOR)   # link GroupHost
 ```
 
-## Timetable (the core)
+## Schedule (the core)
 
 ```
-GET    /timetable?termId=&departmentId=   # grid-shaped, read-optimized
-POST   /bookings                          (COORDINATOR)
-PATCH  /bookings/:id                       (COORDINATOR)
-DELETE /bookings/:id                       (COORDINATOR)
+GET    /schedule?termId=&orgUnitId=    # grid-shaped, read-optimized
+POST   /bookings                       (COORDINATOR)
+PATCH  /bookings/:id                    (COORDINATOR)
+DELETE /bookings/:id                    (COORDINATOR)
 ```
 
-**`GET /timetable`** returns data already shaped for the grid: ordered `timeSlots` (rows),
-the chosen `columns` (departments or venues), and `bookings` with the relations the cell
-needs (course code, lecturer initials + display name + title, venue name). Clash flags are
-fetched separately via `/clashes` so the grid and the report share one source of truth.
+**`GET /schedule`** returns data already shaped for the grid: ordered `timeSlots` (rows),
+the chosen `columns` (org units or venues), and `bookings` with the relations the cell needs
+(activity code, host initials + display name + title, venue name). Clash flags are fetched
+separately via `/clashes` so the grid and the report share one source of truth.
 
 **`POST /bookings`** body:
 
@@ -74,7 +83,7 @@ fetched separately via `/clashes` so the grid and the report share one source of
 {
   "termId": "uuid",
   "courseId": "uuid",
-  "lecturerId": "uuid | null",
+  "hostId": "uuid | null",
   "venueId": "uuid | null",
   "timeSlotId": "uuid",
   "level": 300,
@@ -83,7 +92,7 @@ fetched separately via `/clashes` so the grid and the report share one source of
 }
 ```
 
-The backend validates the booking against the university config
+The backend validates the booking against the org config
 (`validateBookingAgainstConfig`) before persisting, and rejects with
 `{ success: false, message }` on a config violation.
 
@@ -91,9 +100,9 @@ The backend validates the booking against the university config
 
 ```
 GET    /clashes?termId=                              # full clash report (Clash[])
-GET    /availability/venues?slotId=&minCapacity=&departmentId=
+GET    /availability/venues?slotId=&minCapacity=&orgUnitId=
 GET    /availability/group/:groupId                  # free slots for a cohort
-GET    /availability/venue/:venueId                  # free slots for a room
+GET    /availability/venue/:venueId                  # free slots for a venue
 ```
 
 **`GET /clashes`** returns the Clash Detection Engine output:
@@ -106,13 +115,13 @@ GET    /availability/venue/:venueId                  # free slots for a room
       "type": "GROUP",
       "timeSlotId": "uuid",
       "bookingIds": ["uuid", "uuid"],
-      "detail": { "groupName": "CS+Math 300", "courseCodes": ["MATH355", "CSC301"] }
+      "detail": { "groupName": "CS+Math 300", "activityCodes": ["MATH355", "CSC301"] }
     }
   ]
 }
 ```
 
-`type` is `VENUE` | `LECTURER` | `GROUP`. Two `ONLINE` bookings in the same slot do **not**
+`type` is `VENUE` | `HOST` | `GROUP`. Two `ONLINE` bookings in the same slot do **not**
 produce a `VENUE` clash (config-driven).
 
 ## Ingestion
@@ -143,7 +152,7 @@ creates duplicates.
 
 ```
 WS     /socket
-       rooms:   term:<termId>
+       rooms:   term:<termId>   (optionally unit:<orgUnitId>)
        events:  booking:changed   { bookingId, action: "created"|"updated"|"deleted", … }
 ```
 
@@ -158,6 +167,7 @@ terms receive nothing.
 
 - The frontend never decides roles or enforces business rules — the backend is the source
   of truth.
-- All inputs are validated server-side; assume malicious clients.
+- All inputs validated server-side; assume malicious clients.
 - Prisma parameterized queries only.
 - New fields on existing models are nullable; existing endpoints are unchanged.
+- No org-specific assumption in code — org differences live in `configProfile`.
