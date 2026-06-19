@@ -1,0 +1,18 @@
+#!/bin/sh
+# IshRize web pre-commit hook.
+# Activated by the "prepare" script (git config core.hooksPath .githooks) once the
+# Next.js app is scaffolded in Phase 2.
+# Bypass in an emergency with: git commit --no-verify
+
+if [ ! -f package.json ]; then
+  echo "[pre-commit] no package.json yet (foundation phase) — skipping type-check."
+  exit 0
+fi
+
+echo "[pre-commit] type-checking web (npm run type-check)..."
+if ! npm run type-check --silent; then
+  echo "[pre-commit] TypeScript errors found — commit aborted."
+  echo "[pre-commit] Fix the errors, or bypass with: git commit --no-verify"
+  exit 1
+fi
+echo "[pre-commit] OK"

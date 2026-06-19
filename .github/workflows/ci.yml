@@ -1,0 +1,53 @@
+name: CI
+
+on:
+  push:
+    branches: [dev, main]
+  pull_request:
+    branches: [dev, main]
+
+jobs:
+  build:
+    name: Typecheck, lint & build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      # The Next.js app is scaffolded in Phase 2. Until package.json exists, the build
+      # steps are skipped so CI stays green during the foundation phase.
+      - name: Detect app scaffold
+        id: scaffold
+        run: |
+          if [ -f package.json ]; then
+            echo "ready=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "ready=false" >> "$GITHUB_OUTPUT"
+            echo "No package.json yet (Phase 0 foundation) — skipping build steps."
+          fi
+
+      - uses: actions/setup-node@v4
+        if: steps.scaffold.outputs.ready == 'true'
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        if: steps.scaffold.outputs.ready == 'true'
+        run: npm ci
+
+      - name: Type check
+        if: steps.scaffold.outputs.ready == 'true'
+        run: npm run type-check
+
+      - name: Lint
+        if: steps.scaffold.outputs.ready == 'true'
+        run: npm run lint
+
+      - name: Build
+        if: steps.scaffold.outputs.ready == 'true'
+        run: npm run build
+
+      - name: Security audit (non-blocking)
+        if: steps.scaffold.outputs.ready == 'true'
+        run: npm audit --audit-level=high
+        continue-on-error: true
