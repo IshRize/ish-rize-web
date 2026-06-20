@@ -1,30 +1,36 @@
 /**
  * Module: Schedule page
  * Layer:  web-page (client)
- * Context: See COPILOT_CONTEXT.md, IMPLEMENTATION_PLAN.md (Phase 2/3)
+ * Context: See COPILOT_CONTEXT.md, IMPLEMENTATION_PLAN.md (Phase 2/3/4)
  *
  * Purpose: Render the master schedule grid for the selected organization and
- *          term, with client-side filtering and clash badges overlaid on
- *          affected cells. No write actions yet.
+ *          term, with client-side filtering, clash badges, and (for
+ *          coordinators) live create/delete editing. Joins the term's
+ *          real-time room so every connected viewer's grid updates when anyone
+ *          changes a booking.
  */
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { useQuery } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { schedulingApi } from '@/lib/api';
 import { vocab } from '@/lib/vocab';
 import { useAuthStore } from '@/stores/authStore';
 import { useScheduleSelectionStore } from '@/stores/scheduleSelectionStore';
+import { useScheduleSocket } from '@/hooks/useScheduleSocket';
 import { AppHeader } from '@/components/layout/AppHeader';
 import { FilterBar, ALL, type ScheduleFilters } from '@/components/schedule/FilterBar';
 import { ScheduleGrid } from '@/components/schedule/ScheduleGrid';
+import { AddBookingModal } from '@/components/schedule/AddBookingModal';
 
 export default function SchedulePage() {
   const router = useRouter();
-  const { isAuthenticated, isLoading: authLoading, loadUser } = useAuthStore();
+  const { user, isAuthenticated, isLoading: authLoading, loadUser } = useAuthStore();
   const { organizationId, termId } = useScheduleSelectionStore();
   const [filters, setFilters] = useState<ScheduleFilters>({ unitId: ALL, level: ALL, kind: ALL, venueId: ALL });
+  const [addTarget, setAddTarget] = useState<{ timeSlotId: string; orgUnitId: string } | null>(null);
+  const queryClient = useQueryClient();
 
   useEffect(() => {
     loadUser();
@@ -34,6 +40,13 @@ export default function SchedulePage() {
   useEffect(() => {
     if (!authLoading && !isAuthenticated) router.replace('/login');
   }, [authLoading, isAuthenticated, router]);
+
+  // Joins this term's real-time room; invalidates schedule/clash caches when
+  // ANY connected client (including this one) changes a booking, so every
+  // viewer's grid stays in sync without a manual refresh.
+  useScheduleSocket(termId);
+
+  const canEdit = user?.role === 'LECTURER' || user?.role === 'ADMIN';
 
   const configQuery = useQuery({
     queryKey: ['org-config', organizationId],
@@ -57,6 +70,25 @@ export default function SchedulePage() {
     queryKey: ['clashes', termId],
     queryFn: () => schedulingApi.getClashes(termId),
     enabled: !!termId,
+  });
+
+  function invalidateScheduleAndClashes() {
+    queryClient.invalidateQueries({ queryKey: ['schedule', termId] });
+    queryClient.invalidateQueries({ queryKey: ['clashes', termId] });
+  }
+
+  const createMutation = useMutation({
+    mutationFn: (input: { courseId: string; hostId?: string; venueId?: string }) =>
+      schedulingApi.createBooking({ ...input, termId, timeSlotId: addTarget!.timeSlotId }),
+    onSuccess: () => {
+      invalidateScheduleAndClashes();
+      setAddTarget(null);
+    },
+  });
+
+  const deleteMutation = useMutation({
+    mutationFn: (bookingId: string) => schedulingApi.deleteBooking(bookingId),
+    onSuccess: invalidateScheduleAndClashes,
   });
 
   const config = configQuery.data;
@@ -113,6 +145,21 @@ export default function SchedulePage() {
           units={filteredUnits}
           bookings={filteredBookings}
           clashes={clashesQuery.data}
+          canEdit={canEdit}
+          onAddBooking={(timeSlotId, orgUnitId) => setAddTarget({ timeSlotId, orgUnitId })}
+          onDeleteBooking={(bookingId) => deleteMutation.mutate(bookingId)}
+        />
+      )}
+
+      {addTarget && (
+        <AddBookingModal
+          organizationId={organizationId}
+          orgUnitId={addTarget.orgUnitId}
+          config={config}
+          onClose={() => setAddTarget(null)}
+          onSubmit={(input) => createMutation.mutate(input)}
+          isSubmitting={createMutation.isPending}
+          error={createMutation.error?.message}
         />
       )}
     </main>

@@ -14,6 +14,7 @@
  */
 import type {
   ActivitySummary,
+  Booking,
   Clash,
   GroupSummary,
   HostSummary,
@@ -106,6 +107,19 @@ export const schedulingApi = {
   },
   getFreeSlotsForVenue(venueId: string): Promise<TimeSlot[]> {
     return request<TimeSlot[]>(`/availability/venue/${venueId}`);
+  },
+  createBooking(input: {
+    termId: string;
+    courseId: string;
+    timeSlotId: string;
+    hostId?: string;
+    venueId?: string;
+    level?: number;
+  }): Promise<Booking> {
+    return request<Booking>('/bookings', { method: 'POST', body: JSON.stringify(input) });
+  },
+  deleteBooking(bookingId: string): Promise<void> {
+    return request<void>(`/bookings/${bookingId}`, { method: 'DELETE' });
   },
 };
 

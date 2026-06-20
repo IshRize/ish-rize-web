@@ -1,13 +1,15 @@
 /**
  * Module: ScheduleGrid
  * Layer:  web-component (TanStack Table)
- * Context: See COPILOT_CONTEXT.md, ARCHITECTURE.md §6 (web app structure)
+ * Context: See COPILOT_CONTEXT.md, ARCHITECTURE.md §6 (web app structure), IMPLEMENTATION_PLAN.md (Phase 4)
  *
- * Purpose: The master schedule grid — read-only. Rows are time slots (ordered by
- *          the backend: day, then period); columns are org units. Cells render
+ * Purpose: The master schedule grid. Rows are time slots (ordered by the
+ *          backend: day, then period); columns are org units. Cells render
  *          BookingCell, with a ClashBadge when the cell's booking appears in the
  *          clash report. Filtering is handled by the parent (already fetched
- *          data, no round-trip) — this component just renders the result.
+ *          data, no round-trip). When canEdit is set, empty cells get an add
+ *          affordance and bookings get a delete affordance — both delegate to
+ *          the parent, which owns the mutations and optimistic updates.
  */
 'use client';
 
@@ -21,6 +23,9 @@ interface ScheduleGridProps {
   units: OrgUnit[];
   bookings: Booking[];
   clashes?: Clash[];
+  canEdit?: boolean;
+  onAddBooking?: (timeSlotId: string, orgUnitId: string) => void;
+  onDeleteBooking?: (bookingId: string) => void;
 }
 
 interface GridRow {
@@ -30,7 +35,15 @@ interface GridRow {
 
 const columnHelper = createColumnHelper<GridRow>();
 
-export function ScheduleGrid({ timeSlots, units, bookings, clashes = [] }: ScheduleGridProps) {
+export function ScheduleGrid({
+  timeSlots,
+  units,
+  bookings,
+  clashes = [],
+  canEdit = false,
+  onAddBooking,
+  onDeleteBooking,
+}: ScheduleGridProps) {
   const clashesByBookingId = useMemo(() => {
     const map = new Map<string, Clash[]>();
     for (const clash of clashes) {
@@ -74,11 +87,19 @@ export function ScheduleGrid({ timeSlots, units, bookings, clashes = [] }: Sched
         columnHelper.accessor((row) => row.cells[unit.id] ?? [], {
           id: unit.id,
           header: unit.name,
-          cell: (info) => <BookingCell bookings={info.getValue()} clashesByBookingId={clashesByBookingId} />,
+          cell: (info) => (
+            <BookingCell
+              bookings={info.getValue()}
+              clashesByBookingId={clashesByBookingId}
+              canEdit={canEdit}
+              onAdd={() => onAddBooking?.(info.row.original.slot.id, unit.id)}
+              onDelete={onDeleteBooking}
+            />
+          ),
         }),
       ),
     ],
-    [units, clashesByBookingId],
+    [units, clashesByBookingId, canEdit, onAddBooking, onDeleteBooking],
   );
 
   const table = useReactTable({ data: rows, columns, getCoreRowModel: getCoreRowModel() });
