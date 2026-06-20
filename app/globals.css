@@ -1,0 +1,84 @@
+@import "tailwindcss";
+
+/*
+ * IshRize theme tokens, mirrored from ish-rize-mobile/src/theme/colors.ts.
+ * Foundation (navy, default) is the daily-discipline theme; Ascent (light) is
+ * for growth/review. Do not hardcode colors elsewhere — use these tokens.
+ */
+:root {
+  --color-bg-primary: #0f172a;
+  --color-bg-secondary: #1e293b;
+  --color-surface: #1e293b;
+  --color-surface-alt: #263348;
+  --color-accent: #c9a24d;
+
+  --color-text-primary: #f8fafc;
+  --color-text-secondary: #cbd5e1;
+  --color-text-disabled: #64748b;
+  --color-text-inverse: #0f172a;
+
+  --color-border: #334155;
+  --color-border-light: #263348;
+  --color-divider: #334155;
+
+  --color-success: #10b981;
+  --color-warning: #f59e0b;
+  --color-error: #ef4444;
+  --color-info: #3b82f6;
+
+  --color-glass-bg: rgb(30 41 59 / 0.7);
+  --color-glass-border: rgb(203 213 225 / 0.1);
+  --color-overlay: rgb(0 0 0 / 0.5);
+}
+
+[data-theme="ascent"] {
+  --color-bg-primary: #f9fafb;
+  --color-bg-secondary: #f1f5f9;
+  --color-surface: #ffffff;
+  --color-surface-alt: #f0f0f0;
+  --color-accent: #b8932e;
+
+  --color-text-primary: #0f172a;
+  --color-text-secondary: #6b6b6b;
+  --color-text-disabled: #aaaaaa;
+  --color-text-inverse: #ffffff;
+
+  --color-border: #e0e0e0;
+  --color-border-light: #f0f0f0;
+  --color-divider: #eeeeee;
+
+  --color-success: #256d5b;
+  --color-warning: #8a5a2b;
+  --color-error: #6b2f2f;
+  --color-info: #2563eb;
+
+  --color-glass-bg: rgb(255 255 255 / 0.85);
+  --color-glass-border: rgb(0 0 0 / 0.06);
+  --color-overlay: rgb(0 0 0 / 0.4);
+}
+
+@theme inline {
+  --color-bg-primary: var(--color-bg-primary);
+  --color-bg-secondary: var(--color-bg-secondary);
+  --color-surface: var(--color-surface);
+  --color-surface-alt: var(--color-surface-alt);
+  --color-accent: var(--color-accent);
+  --color-text-primary: var(--color-text-primary);
+  --color-text-secondary: var(--color-text-secondary);
+  --color-text-disabled: var(--color-text-disabled);
+  --color-text-inverse: var(--color-text-inverse);
+  --color-border: var(--color-border);
+  --color-border-light: var(--color-border-light);
+  --color-divider: var(--color-divider);
+  --color-success: var(--color-success);
+  --color-warning: var(--color-warning);
+  --color-error: var(--color-error);
+  --color-info: var(--color-info);
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+}
+
+body {
+  background: var(--color-bg-primary);
+  color: var(--color-text-primary);
+}
