@@ -14,6 +14,8 @@
  */
 import type {
   ActivitySummary,
+  Clash,
+  GroupSummary,
   HostSummary,
   OrgConfig,
   OrgUnit,
@@ -22,6 +24,7 @@ import type {
   Term,
   TimeSlot,
   User,
+  VenueSummary,
 } from '@/types/scheduling';
 
 const PROXY_BASE = '/api/proxy';
@@ -75,12 +78,34 @@ export const schedulingApi = {
   listHosts(orgUnitId: string): Promise<HostSummary[]> {
     return request<HostSummary[]>(`/hosts?orgUnitId=${orgUnitId}`);
   },
+  listVenues(organizationId: string, orgUnitId?: string): Promise<VenueSummary[]> {
+    const q = orgUnitId ? `&orgUnitId=${orgUnitId}` : '';
+    return request<VenueSummary[]>(`/venues?organizationId=${organizationId}${q}`);
+  },
   listActivities(orgUnitId: string): Promise<ActivitySummary[]> {
     return request<ActivitySummary[]>(`/activities?orgUnitId=${orgUnitId}`);
   },
   getSchedule(termId: string, orgUnitId?: string): Promise<ScheduleResponse> {
     const q = orgUnitId ? `&orgUnitId=${orgUnitId}` : '';
     return request<ScheduleResponse>(`/schedule?termId=${termId}${q}`);
+  },
+  listGroups(termId: string): Promise<GroupSummary[]> {
+    return request<GroupSummary[]>(`/groups?termId=${termId}`);
+  },
+  getClashes(termId: string): Promise<Clash[]> {
+    return request<Clash[]>(`/clashes?termId=${termId}`);
+  },
+  getFreeVenues(params: { slotId: string; minCapacity?: number; orgUnitId?: string }): Promise<VenueSummary[]> {
+    const q = new URLSearchParams({ slotId: params.slotId });
+    if (params.minCapacity != null) q.set('minCapacity', String(params.minCapacity));
+    if (params.orgUnitId) q.set('orgUnitId', params.orgUnitId);
+    return request<VenueSummary[]>(`/availability/venues?${q.toString()}`);
+  },
+  getFreeSlotsForGroup(groupId: string): Promise<TimeSlot[]> {
+    return request<TimeSlot[]>(`/availability/group/${groupId}`);
+  },
+  getFreeSlotsForVenue(venueId: string): Promise<TimeSlot[]> {
+    return request<TimeSlot[]>(`/availability/venue/${venueId}`);
   },
 };
 

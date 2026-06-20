@@ -3,22 +3,24 @@
  * Layer:  web-component (TanStack Table)
  * Context: See COPILOT_CONTEXT.md, ARCHITECTURE.md §6 (web app structure)
  *
- * Purpose: The master schedule grid — read-only in Phase 2. Rows are time slots
- *          (ordered by the backend: day, then period); columns are org units.
- *          Cells render BookingCell. Filtering is handled by the parent (already
- *          fetched data, no round-trip) — this component just renders the result.
+ * Purpose: The master schedule grid — read-only. Rows are time slots (ordered by
+ *          the backend: day, then period); columns are org units. Cells render
+ *          BookingCell, with a ClashBadge when the cell's booking appears in the
+ *          clash report. Filtering is handled by the parent (already fetched
+ *          data, no round-trip) — this component just renders the result.
  */
 'use client';
 
 import { useMemo } from 'react';
 import { createColumnHelper, getCoreRowModel, useReactTable, flexRender } from '@tanstack/react-table';
 import { BookingCell } from './BookingCell';
-import type { Booking, OrgUnit, TimeSlot } from '@/types/scheduling';
+import type { Booking, Clash, OrgUnit, TimeSlot } from '@/types/scheduling';
 
 interface ScheduleGridProps {
   timeSlots: TimeSlot[];
   units: OrgUnit[];
   bookings: Booking[];
+  clashes?: Clash[];
 }
 
 interface GridRow {
@@ -28,7 +30,19 @@ interface GridRow {
 
 const columnHelper = createColumnHelper<GridRow>();
 
-export function ScheduleGrid({ timeSlots, units, bookings }: ScheduleGridProps) {
+export function ScheduleGrid({ timeSlots, units, bookings, clashes = [] }: ScheduleGridProps) {
+  const clashesByBookingId = useMemo(() => {
+    const map = new Map<string, Clash[]>();
+    for (const clash of clashes) {
+      for (const bookingId of clash.bookingIds) {
+        const bucket = map.get(bookingId) ?? [];
+        bucket.push(clash);
+        map.set(bookingId, bucket);
+      }
+    }
+    return map;
+  }, [clashes]);
+
   const rows = useMemo<GridRow[]>(() => {
     return timeSlots.map((slot) => {
       const cells: Record<string, Booking[]> = {};
@@ -60,11 +74,11 @@ export function ScheduleGrid({ timeSlots, units, bookings }: ScheduleGridProps) 
         columnHelper.accessor((row) => row.cells[unit.id] ?? [], {
           id: unit.id,
           header: unit.name,
-          cell: (info) => <BookingCell bookings={info.getValue()} />,
+          cell: (info) => <BookingCell bookings={info.getValue()} clashesByBookingId={clashesByBookingId} />,
         }),
       ),
     ],
-    [units],
+    [units, clashesByBookingId],
   );
 
   const table = useReactTable({ data: rows, columns, getCoreRowModel: getCoreRowModel() });

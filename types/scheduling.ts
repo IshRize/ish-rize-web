@@ -104,3 +104,23 @@ export interface ScheduleResponse {
   columns: OrgUnit[];
   bookings: Booking[];
 }
+
+export interface Clash {
+  type: 'VENUE' | 'HOST' | 'GROUP';
+  timeSlotId: string;
+  bookingIds: string[];
+  detail: {
+    venueName?: string;
+    hostName?: string;
+    groupName?: string;
+    activityCodes: string[];
+  };
+}
+
+export interface GroupSummary {
+  id: string;
+  termId: string;
+  orgUnitId: string;
+  name: string;
+  courseLinks: { courseId: string }[];
+}
