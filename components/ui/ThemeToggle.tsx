@@ -3,39 +3,58 @@
  * Layer:  web-component (client)
  * Context: See COPILOT_CONTEXT.md
  *
- * Purpose: Switch between Foundation (default, dark) and Ascent (light), mirroring
- *          the mobile theme system. Persists the choice in localStorage.
+ * Purpose: Light/dark toggle. Defaults to the OS's prefers-color-scheme; a
+ *          manual choice is persisted to localStorage and wins over the system
+ *          setting from then on. Toggling sets data-theme="dark"|"" on <html>,
+ *          which swaps every CSS variable in globals.css instantly — no reload.
  */
 'use client';
 
 import { useEffect, useState } from 'react';
 
 const STORAGE_KEY = 'ishrize_web_theme';
+type ThemeChoice = 'light' | 'dark';
+
+function applyTheme(theme: ThemeChoice): void {
+  document.documentElement.setAttribute('data-theme', theme === 'dark' ? 'dark' : '');
+}
 
 export function ThemeToggle() {
-  const [theme, setTheme] = useState<'foundation' | 'ascent'>('foundation');
+  const [theme, setTheme] = useState<ThemeChoice>('light');
 
   useEffect(() => {
-    const stored = localStorage.getItem(STORAGE_KEY);
-    const initial = stored === 'ascent' ? 'ascent' : 'foundation';
+    const stored = localStorage.getItem(STORAGE_KEY) as ThemeChoice | null;
+    const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
+    const initial = stored ?? (mediaQuery.matches ? 'dark' : 'light');
     setTheme(initial);
-    document.documentElement.setAttribute('data-theme', initial === 'ascent' ? 'ascent' : '');
+    applyTheme(initial);
+
+    // Only follow live system-preference changes when the user hasn't made an
+    // explicit choice — a manual override always wins.
+    if (stored) return;
+    const handleChange = (e: MediaQueryListEvent): void => {
+      const next: ThemeChoice = e.matches ? 'dark' : 'light';
+      setTheme(next);
+      applyTheme(next);
+    };
+    mediaQuery.addEventListener('change', handleChange);
+    return () => mediaQuery.removeEventListener('change', handleChange);
   }, []);
 
-  function toggle() {
-    const next = theme === 'foundation' ? 'ascent' : 'foundation';
+  function toggle(): void {
+    const next: ThemeChoice = theme === 'dark' ? 'light' : 'dark';
     setTheme(next);
     localStorage.setItem(STORAGE_KEY, next);
-    document.documentElement.setAttribute('data-theme', next === 'ascent' ? 'ascent' : '');
+    applyTheme(next);
   }
 
   return (
     <button
       type="button"
       onClick={toggle}
-      className="rounded-md border border-[var(--color-border)] px-3 py-1.5 text-sm text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)]"
+      className="rounded-md border border-[var(--border-default)] px-3 py-1.5 text-sm text-[var(--fg-muted)] hover:text-[var(--fg-primary)]"
     >
-      {theme === 'foundation' ? 'Foundation' : 'Ascent'}
+      {theme === 'dark' ? 'Dark' : 'Light'}
     </button>
   );
 }

@@ -3,10 +3,11 @@
  * Layer:  web-component (client)
  * Context: See COPILOT_CONTEXT.md
  *
- * Purpose: Shared header for the Schedule/Clashes/Free-finder pages — title,
- *          nav links, organization/term selectors (backed by
+ * Purpose: Shared header for the Schedule/Clashes/Free-finder/Ingestion pages —
+ *          title, nav links, organization/term selectors (backed by
  *          scheduleSelectionStore so the choice persists across pages), theme
- *          toggle, sign out.
+ *          toggle, sign out. Applies the org-neutral accent override
+ *          (lib/orgTheme.ts) the moment an org's config resolves.
  */
 'use client';
 
@@ -15,6 +16,7 @@ import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { useQuery } from '@tanstack/react-query';
 import { schedulingApi } from '@/lib/api';
+import { applyOrgAccentOverride } from '@/lib/orgTheme';
 import { useAuthStore } from '@/stores/authStore';
 import { useScheduleSelectionStore } from '@/stores/scheduleSelectionStore';
 import { ThemeToggle } from '@/components/ui/ThemeToggle';
@@ -30,7 +32,13 @@ const NAV_LINKS = [
 // (LECTURER/ADMIN); hide the link rather than send other roles to a 403.
 const COORDINATOR_NAV_LINKS = [{ href: '/ingestion', label: 'Ingestion' }];
 
-export function AppHeader({ title }: { title: string }) {
+interface AppHeaderProps {
+  title: string;
+  /** Rendered next to the title — e.g. the schedule page's live-sync dot. */
+  endSlot?: React.ReactNode;
+}
+
+export function AppHeader({ title, endSlot }: AppHeaderProps) {
   const pathname = usePathname();
   const router = useRouter();
   const { user, logout } = useAuthStore();
@@ -54,12 +62,26 @@ export function AppHeader({ title }: { title: string }) {
     }
   }, [termId, termsQuery.data, setTermId]);
 
+  // Org-neutral accent override: applies the moment this org's config
+  // resolves, and clears back to the default theme tokens when it has none.
+  const configQuery = useQuery({
+    queryKey: ['org-config', organizationId],
+    queryFn: () => schedulingApi.getOrgConfig(organizationId),
+    enabled: !!organizationId,
+  });
+  useEffect(() => {
+    applyOrgAccentOverride(configQuery.data?.branding);
+  }, [configQuery.data]);
+
   return (
-    <header className="mb-6 space-y-4">
+    <header className="mb-6 space-y-4 rounded-lg bg-[var(--bg-alternate)] p-4">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h1 className="text-xl font-semibold text-[var(--color-text-primary)]">{title}</h1>
-          <p className="text-sm text-[var(--color-text-secondary)]">
+          <div className="flex items-center gap-3">
+            <h1 className="text-xl font-semibold text-[var(--fg-primary)]">{title}</h1>
+            {endSlot}
+          </div>
+          <p className="text-sm text-[var(--fg-muted)]">
             Signed in as {user?.firstName} {user?.lastName} ({user?.role})
           </p>
         </div>
@@ -68,7 +90,7 @@ export function AppHeader({ title }: { title: string }) {
           <button
             type="button"
             onClick={() => logout().then(() => router.push('/login'))}
-            className="rounded-md border border-[var(--color-border)] px-3 py-1.5 text-sm text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)]"
+            className="rounded-md border border-[var(--border-default)] px-3 py-1.5 text-sm text-[var(--fg-muted)] hover:text-[var(--fg-primary)]"
           >
             Sign out
           </button>
@@ -82,8 +104,8 @@ export function AppHeader({ title }: { title: string }) {
             href={link.href}
             className={`rounded-md px-3 py-1.5 text-sm ${
               pathname === link.href
-                ? 'bg-[var(--color-accent)] text-[var(--color-text-inverse)]'
-                : 'text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)]'
+                ? 'bg-[var(--accent-primary)] text-[var(--fg-on-accent-primary)]'
+                : 'text-[var(--fg-muted)] hover:text-[var(--fg-primary)]'
             }`}
           >
             {link.label}

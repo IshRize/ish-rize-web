@@ -20,6 +20,7 @@ import { useAuthStore } from '@/stores/authStore';
 import { useScheduleSelectionStore } from '@/stores/scheduleSelectionStore';
 import { useScheduleSocket } from '@/hooks/useScheduleSocket';
 import { AppHeader } from '@/components/layout/AppHeader';
+import { LiveSyncIndicator } from '@/components/ui/LiveSyncIndicator';
 import { FilterBar, ALL, type ScheduleFilters } from '@/components/schedule/FilterBar';
 import { ScheduleGrid } from '@/components/schedule/ScheduleGrid';
 import { AddBookingModal } from '@/components/schedule/AddBookingModal';
@@ -44,7 +45,7 @@ export default function SchedulePage() {
   // Joins this term's real-time room; invalidates schedule/clash caches when
   // ANY connected client (including this one) changes a booking, so every
   // viewer's grid stays in sync without a manual refresh.
-  useScheduleSocket(termId);
+  const { connected } = useScheduleSocket(termId);
 
   const canEdit = user?.role === 'LECTURER' || user?.role === 'ADMIN';
 
@@ -121,24 +122,27 @@ export default function SchedulePage() {
 
   if (authLoading || !isAuthenticated) {
     return (
-      <main className="flex min-h-screen items-center justify-center bg-[var(--color-bg-primary)]">
-        <p className="text-sm text-[var(--color-text-secondary)]">Loading…</p>
+      <main className="flex min-h-screen items-center justify-center bg-[var(--bg-primary)]">
+        <p className="text-sm text-[var(--fg-muted)]">Loading…</p>
       </main>
     );
   }
 
   return (
-    <main className="min-h-screen bg-[var(--color-bg-primary)] p-6">
-      <AppHeader title={vocab(config, 'unit') === 'Ministry' ? 'Service Schedule' : 'Master Schedule'} />
+    <main className="min-h-screen bg-[var(--bg-primary)] p-6">
+      <AppHeader
+        title={vocab(config, 'unit') === 'Ministry' ? 'Service Schedule' : 'Master Schedule'}
+        endSlot={<LiveSyncIndicator connected={connected} />}
+      />
 
       <section className="mb-4">
         <FilterBar config={config} units={leafUnits} bookings={allBookings} filters={filters} onChange={setFilters} />
       </section>
 
       {scheduleQuery.isLoading ? (
-        <p className="text-sm text-[var(--color-text-secondary)]">Loading schedule…</p>
+        <p className="text-sm text-[var(--fg-muted)]">Loading schedule…</p>
       ) : scheduleQuery.isError ? (
-        <p className="text-sm text-[var(--color-error)]">Failed to load schedule.</p>
+        <p className="text-sm text-[var(--fg-clash)]">Failed to load schedule.</p>
       ) : (
         <ScheduleGrid
           timeSlots={timeSlots}

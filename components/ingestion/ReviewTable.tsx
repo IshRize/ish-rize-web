@@ -7,7 +7,9 @@
  *          warnings, and let the coordinator pick a correct activity, host,
  *          venue, or time slot inline for anything the engine couldn't match —
  *          before anything is committed. The assistant proposes; the human
- *          disposes.
+ *          disposes. Resolved fields use the free-slot ("OK") token; anything
+ *          still needing a manual fix uses the pending token, in line with the
+ *          product's 3-state clash/free/pending system.
  */
 'use client';
 
@@ -42,10 +44,10 @@ function ResolvedOrFix<T extends { id: string }>({
 }) {
   if (resolvedId) {
     const item = options.find((o) => o.id === resolvedId);
-    return <span className="text-[var(--color-success)]">{item ? getLabel(item) : resolvedId}</span>;
+    return <span className="text-[var(--fg-free-slot)]">{item ? getLabel(item) : resolvedId}</span>;
   }
   if (!rawText) {
-    return <span className="text-[var(--color-text-disabled)]">—</span>;
+    return <span className="text-[var(--fg-muted)]">—</span>;
   }
   return (
     <Select
@@ -59,76 +61,82 @@ function ResolvedOrFix<T extends { id: string }>({
 
 export function ReviewTable({ drafts, activities, hosts, venues, timeSlots, onChange }: ReviewTableProps) {
   if (drafts.length === 0) {
-    return <p className="text-sm text-[var(--color-text-secondary)]">No rows parsed from this file.</p>;
+    return <p className="text-sm text-[var(--fg-muted)]">No rows parsed from this file.</p>;
   }
 
   return (
-    <div className="overflow-x-auto rounded-lg border border-[var(--color-border)]">
+    <div className="overflow-x-auto rounded-lg border border-[var(--border-default)]">
       <table className="w-full border-collapse text-sm">
-        <thead className="bg-[var(--color-surface)]">
+        <thead className="bg-[var(--accent-secondary)]">
           <tr>
             {['Row', 'Activity', 'Time slot', 'Venue', 'Host', 'Warnings'].map((h) => (
-              <th key={h} className="border-b border-[var(--color-border)] px-3 py-2 text-left text-xs font-semibold text-[var(--color-text-secondary)]">
+              <th key={h} className="border-b border-[var(--border-default)] px-3 py-2 text-left text-xs font-semibold text-[var(--fg-on-accent-primary)]">
                 {h}
               </th>
             ))}
           </tr>
         </thead>
         <tbody>
-          {drafts.map((d) => (
-            <tr key={d.rowIndex} className="even:bg-[var(--color-bg-secondary)]/40">
-              <td className="border-b border-[var(--color-border-light)] px-3 py-2 align-top text-xs text-[var(--color-text-secondary)]">
-                {d.rowIndex}
-              </td>
-              <td className="border-b border-[var(--color-border-light)] px-3 py-2 align-top">
-                <ResolvedOrFix
-                  resolvedId={d.courseId}
-                  rawText={d.raw.code}
-                  options={activities}
-                  getLabel={(a) => `${a.code} — ${a.name}`}
-                  onPick={(courseId) => onChange(d.rowIndex, { courseId })}
-                />
-              </td>
-              <td className="border-b border-[var(--color-border-light)] px-3 py-2 align-top">
-                <ResolvedOrFix
-                  resolvedId={d.timeSlotId}
-                  rawText={d.raw.day ? `${d.raw.day} ${d.raw.slot}` : undefined}
-                  options={timeSlots}
-                  getLabel={timeSlotLabel}
-                  onPick={(timeSlotId) => onChange(d.rowIndex, { timeSlotId })}
-                />
-              </td>
-              <td className="border-b border-[var(--color-border-light)] px-3 py-2 align-top">
-                <ResolvedOrFix
-                  resolvedId={d.venueId}
-                  rawText={d.raw.venue}
-                  options={venues}
-                  getLabel={(v) => v.name}
-                  onPick={(venueId) => onChange(d.rowIndex, { venueId })}
-                />
-              </td>
-              <td className="border-b border-[var(--color-border-light)] px-3 py-2 align-top">
-                <ResolvedOrFix
-                  resolvedId={d.hostId}
-                  rawText={d.raw.host}
-                  options={hosts}
-                  getLabel={(h) => h.displayName}
-                  onPick={(hostId) => onChange(d.rowIndex, { hostId })}
-                />
-              </td>
-              <td className="border-b border-[var(--color-border-light)] px-3 py-2 align-top text-xs text-[var(--color-warning)]">
-                {d.warnings.length === 0 ? (
-                  <span className="text-[var(--color-success)]">OK</span>
-                ) : (
-                  <ul className="list-inside list-disc">
-                    {d.warnings.map((w, i) => (
-                      <li key={i}>{w}</li>
-                    ))}
-                  </ul>
-                )}
-              </td>
-            </tr>
-          ))}
+          {drafts.map((d) => {
+            const needsReview = d.warnings.length > 0;
+            return (
+              <tr
+                key={d.rowIndex}
+                className={needsReview ? 'bg-[var(--bg-pending)]/40' : 'even:bg-[var(--bg-alternate)]/60'}
+              >
+                <td className="border-b border-[var(--border-default)] px-3 py-2 align-top text-xs tabular-nums text-[var(--fg-muted)]">
+                  {d.rowIndex}
+                </td>
+                <td className="border-b border-[var(--border-default)] px-3 py-2 align-top">
+                  <ResolvedOrFix
+                    resolvedId={d.courseId}
+                    rawText={d.raw.code}
+                    options={activities}
+                    getLabel={(a) => `${a.code} — ${a.name}`}
+                    onPick={(courseId) => onChange(d.rowIndex, { courseId })}
+                  />
+                </td>
+                <td className="border-b border-[var(--border-default)] px-3 py-2 align-top">
+                  <ResolvedOrFix
+                    resolvedId={d.timeSlotId}
+                    rawText={d.raw.day ? `${d.raw.day} ${d.raw.slot}` : undefined}
+                    options={timeSlots}
+                    getLabel={timeSlotLabel}
+                    onPick={(timeSlotId) => onChange(d.rowIndex, { timeSlotId })}
+                  />
+                </td>
+                <td className="border-b border-[var(--border-default)] px-3 py-2 align-top">
+                  <ResolvedOrFix
+                    resolvedId={d.venueId}
+                    rawText={d.raw.venue}
+                    options={venues}
+                    getLabel={(v) => v.name}
+                    onPick={(venueId) => onChange(d.rowIndex, { venueId })}
+                  />
+                </td>
+                <td className="border-b border-[var(--border-default)] px-3 py-2 align-top">
+                  <ResolvedOrFix
+                    resolvedId={d.hostId}
+                    rawText={d.raw.host}
+                    options={hosts}
+                    getLabel={(h) => h.displayName}
+                    onPick={(hostId) => onChange(d.rowIndex, { hostId })}
+                  />
+                </td>
+                <td className="border-b border-[var(--border-default)] px-3 py-2 align-top text-xs text-[var(--fg-pending)]">
+                  {!needsReview ? (
+                    <span className="text-[var(--fg-free-slot)]">OK</span>
+                  ) : (
+                    <ul className="list-inside list-disc">
+                      {d.warnings.map((w, i) => (
+                        <li key={i}>{w}</li>
+                      ))}
+                    </ul>
+                  )}
+                </td>
+              </tr>
+            );
+          })}
         </tbody>
       </table>
     </div>

@@ -28,14 +28,14 @@ const CLASH_LABEL: Record<Clash['type'], string> = {
 function ClashRow({ clash }: { clash: Clash }) {
   const who = clash.detail.venueName ?? clash.detail.hostName ?? clash.detail.groupName;
   return (
-    <div className="flex items-center justify-between rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] px-4 py-3">
+    <div className="flex items-center justify-between rounded-lg border border-[var(--fg-clash)]/30 bg-[var(--bg-clash)] px-4 py-3">
       <div>
-        <span className="rounded-full bg-[var(--color-error)] px-2 py-0.5 text-xs font-semibold text-[var(--color-text-inverse)]">
+        <span className="rounded-full bg-[var(--fg-clash)] px-2 py-0.5 text-xs font-semibold text-[var(--fg-on-accent-primary)]">
           {CLASH_LABEL[clash.type]}
         </span>
-        {who && <span className="ml-2 text-sm font-medium text-[var(--color-text-primary)]">{who}</span>}
+        {who && <span className="ml-2 text-sm font-medium text-[var(--fg-clash)]">{who}</span>}
       </div>
-      <div className="text-sm text-[var(--color-text-secondary)]">{clash.detail.activityCodes.join(' vs ')}</div>
+      <div className="text-sm text-[var(--fg-clash)]">{clash.detail.activityCodes.join(' vs ')}</div>
     </div>
   );
 }
@@ -62,8 +62,8 @@ export default function ClashesPage() {
 
   if (authLoading || !isAuthenticated) {
     return (
-      <main className="flex min-h-screen items-center justify-center bg-[var(--color-bg-primary)]">
-        <p className="text-sm text-[var(--color-text-secondary)]">Loading…</p>
+      <main className="flex min-h-screen items-center justify-center bg-[var(--bg-primary)]">
+        <p className="text-sm text-[var(--fg-muted)]">Loading…</p>
       </main>
     );
   }
@@ -71,15 +71,15 @@ export default function ClashesPage() {
   const clashes = clashesQuery.data ?? [];
 
   return (
-    <main className="min-h-screen bg-[var(--color-bg-primary)] p-6">
+    <main className="min-h-screen bg-[var(--bg-primary)] p-6">
       <AppHeader title="Clash Report" />
 
       {clashesQuery.isLoading ? (
-        <p className="text-sm text-[var(--color-text-secondary)]">Checking for clashes…</p>
+        <p className="text-sm text-[var(--fg-muted)]">Checking for clashes…</p>
       ) : clashesQuery.isError ? (
-        <p className="text-sm text-[var(--color-error)]">Failed to load clashes.</p>
+        <p className="text-sm text-[var(--fg-clash)]">Failed to load clashes.</p>
       ) : clashes.length === 0 ? (
-        <p className="text-sm text-[var(--color-success)]">No clashes for this term.</p>
+        <p className="text-sm text-[var(--fg-free-slot)]">No clashes for this term.</p>
       ) : (
         <div className="flex flex-col gap-2">
           {clashes.map((clash, i) => (

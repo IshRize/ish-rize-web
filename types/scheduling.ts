@@ -31,6 +31,14 @@ export interface OrgConfig {
   weekDays: string[];
   clashRules: { onlineVenueSkipsRoomClash: boolean };
   features: Record<string, boolean>;
+  // Optional, not yet sent by any org's configProfile — only the accent is
+  // ever org-themeable (see lib/orgTheme.ts). Never extend this to the
+  // clash/free/pending tokens; those are fixed system-wide by design.
+  branding?: {
+    accentPrimary?: string;
+    accentPrimaryHover?: string;
+    accentSecondary?: string;
+  };
 }
 
 export interface OrgUnit {

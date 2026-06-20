@@ -5,7 +5,9 @@
  *
  * Purpose: Surface the Availability Engine — free venues at a chosen slot
  *          (with capacity/unit filters), free slots for a cohort, and free
- *          slots for a venue. Each section is an independent query.
+ *          slots for a venue. Each section is an independent query. Results
+ *          use the bg-free-slot/fg-free-slot tokens — this page's entire
+ *          purpose is the "free" state of the product's 3-state system.
  */
 'use client';
 
@@ -29,14 +31,14 @@ function slotLabel(slot: TimeSlot): string {
 function TimeSlotList({ slots }: { slots: TimeSlot[] | undefined }) {
   if (!slots) return null;
   if (slots.length === 0) {
-    return <p className="text-sm text-[var(--color-text-secondary)]">No free slots.</p>;
+    return <p className="text-sm text-[var(--fg-muted)]">No free slots.</p>;
   }
   return (
     <ul className="grid grid-cols-2 gap-2 sm:grid-cols-3">
       {slots.map((slot) => (
         <li
           key={slot.id}
-          className="rounded-md border border-[var(--color-border-light)] bg-[var(--color-surface-alt)] px-2 py-1 text-xs text-[var(--color-text-primary)]"
+          className="rounded-md border border-[var(--fg-free-slot)]/30 bg-[var(--bg-free-slot)] px-2 py-1 text-xs tabular-nums text-[var(--fg-free-slot)]"
         >
           {slotLabel(slot)}
         </li>
@@ -124,33 +126,33 @@ export default function FreeFinderPage() {
 
   if (authLoading || !isAuthenticated) {
     return (
-      <main className="flex min-h-screen items-center justify-center bg-[var(--color-bg-primary)]">
-        <p className="text-sm text-[var(--color-text-secondary)]">Loading…</p>
+      <main className="flex min-h-screen items-center justify-center bg-[var(--bg-primary)]">
+        <p className="text-sm text-[var(--fg-muted)]">Loading…</p>
       </main>
     );
   }
 
   return (
-    <main className="min-h-screen bg-[var(--color-bg-primary)] p-6">
+    <main className="min-h-screen bg-[var(--bg-primary)] p-6">
       <AppHeader title="Free Finder" />
 
       <div className="grid gap-6 lg:grid-cols-3">
-        <section className="space-y-3 rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] p-4">
-          <h2 className="text-sm font-semibold text-[var(--color-text-primary)]">Free venues at a slot</h2>
+        <section className="space-y-3 rounded-lg border border-[var(--border-default)] bg-[var(--bg-secondary)] p-4">
+          <h2 className="text-sm font-semibold text-[var(--fg-primary)]">Free venues at a slot</h2>
           <Select
             label="Time slot"
             value={slotId}
             onChange={setSlotId}
             options={[{ value: '', label: 'Choose a slot…' }, ...timeSlots.map((s) => ({ value: s.id, label: slotLabel(s) }))]}
           />
-          <label className="flex flex-col gap-1 text-xs text-[var(--color-text-secondary)]">
+          <label className="flex flex-col gap-1 text-xs text-[var(--fg-muted)]">
             Minimum capacity
             <input
               type="number"
               min={0}
               value={minCapacity}
               onChange={(e) => setMinCapacity(e.target.value)}
-              className="rounded-md border border-[var(--color-border)] bg-[var(--color-bg-primary)] px-2 py-1.5 text-sm text-[var(--color-text-primary)]"
+              className="rounded-md border border-[var(--border-default)] bg-[var(--bg-primary)] px-2 py-1.5 text-sm tabular-nums text-[var(--fg-primary)]"
             />
           </label>
           <Select
@@ -162,14 +164,14 @@ export default function FreeFinderPage() {
           {freeVenuesQuery.data && (
             <ul className="flex flex-col gap-1">
               {freeVenuesQuery.data.length === 0 ? (
-                <p className="text-sm text-[var(--color-text-secondary)]">No free venues.</p>
+                <p className="text-sm text-[var(--fg-muted)]">No free venues.</p>
               ) : (
                 freeVenuesQuery.data.map((v) => (
                   <li
                     key={v.id}
-                    className="rounded-md border border-[var(--color-border-light)] bg-[var(--color-surface-alt)] px-2 py-1 text-sm text-[var(--color-text-primary)]"
+                    className="rounded-md border border-[var(--fg-free-slot)]/30 bg-[var(--bg-free-slot)] px-2 py-1 text-sm text-[var(--fg-free-slot)]"
                   >
-                    {v.name} <span className="text-[var(--color-text-secondary)]">· cap {v.capacity}</span>
+                    {v.name} <span className="tabular-nums opacity-80">· cap {v.capacity}</span>
                   </li>
                 ))
               )}
@@ -177,8 +179,8 @@ export default function FreeFinderPage() {
           )}
         </section>
 
-        <section className="space-y-3 rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] p-4">
-          <h2 className="text-sm font-semibold text-[var(--color-text-primary)]">Free slots for a {vocab(config, 'group').toLowerCase()}</h2>
+        <section className="space-y-3 rounded-lg border border-[var(--border-default)] bg-[var(--bg-secondary)] p-4">
+          <h2 className="text-sm font-semibold text-[var(--fg-primary)]">Free slots for a {vocab(config, 'group').toLowerCase()}</h2>
           <Select
             label={vocab(config, 'group')}
             value={groupId}
@@ -188,8 +190,8 @@ export default function FreeFinderPage() {
           <TimeSlotList slots={freeGroupSlotsQuery.data} />
         </section>
 
-        <section className="space-y-3 rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] p-4">
-          <h2 className="text-sm font-semibold text-[var(--color-text-primary)]">Free slots for a venue</h2>
+        <section className="space-y-3 rounded-lg border border-[var(--border-default)] bg-[var(--bg-secondary)] p-4">
+          <h2 className="text-sm font-semibold text-[var(--fg-primary)]">Free slots for a venue</h2>
           <Select
             label="Venue"
             value={venueId}

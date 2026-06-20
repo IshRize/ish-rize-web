@@ -66,14 +66,14 @@ export function AddBookingModal({
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-[var(--color-overlay)] p-4"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-[var(--overlay-backdrop)] p-4"
       onClick={onClose}
     >
       <div
-        className="w-full max-w-sm space-y-3 rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] p-5"
+        className="w-full max-w-sm space-y-3 rounded-lg border border-[var(--border-default)] bg-[var(--bg-secondary)] p-5"
         onClick={(e) => e.stopPropagation()}
       >
-        <h2 className="text-sm font-semibold text-[var(--color-text-primary)]">
+        <h2 className="text-sm font-semibold text-[var(--fg-primary)]">
           Add {vocab(config, 'activity').toLowerCase()}
         </h2>
 
@@ -99,13 +99,13 @@ export function AddBookingModal({
           options={[{ value: NONE, label: 'Unassigned' }, ...(venuesQuery.data ?? []).map((v) => ({ value: v.id, label: v.name }))]}
         />
 
-        {error && <p className="text-sm text-[var(--color-error)]">{error}</p>}
+        {error && <p className="text-sm text-[var(--fg-clash)]">{error}</p>}
 
         <div className="flex justify-end gap-2 pt-2">
           <button
             type="button"
             onClick={onClose}
-            className="rounded-md border border-[var(--color-border)] px-3 py-1.5 text-sm text-[var(--color-text-secondary)]"
+            className="rounded-md border border-[var(--border-default)] px-3 py-1.5 text-sm text-[var(--fg-muted)]"
           >
             Cancel
           </button>
@@ -113,7 +113,7 @@ export function AddBookingModal({
             type="button"
             onClick={handleSubmit}
             disabled={!courseId || isSubmitting}
-            className="rounded-md bg-[var(--color-accent)] px-3 py-1.5 text-sm font-medium text-[var(--color-text-inverse)] disabled:opacity-60"
+            className="rounded-md bg-[var(--accent-primary)] px-3 py-1.5 text-sm font-medium text-[var(--fg-on-accent-primary)] hover:bg-[var(--accent-primary-hover)] disabled:opacity-60"
           >
             {isSubmitting ? 'Adding…' : 'Add'}
           </button>
