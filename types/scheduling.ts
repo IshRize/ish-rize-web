@@ -124,3 +124,25 @@ export interface GroupSummary {
   name: string;
   courseLinks: { courseId: string }[];
 }
+
+export interface DraftBooking {
+  rowIndex: number;
+  raw: { code: string; day: string; slot: string; venue?: string; host?: string; level?: string };
+  courseId?: string;
+  timeSlotId?: string;
+  venueId?: string;
+  hostId?: string;
+  level?: number;
+  warnings: string[];
+}
+
+export interface IngestionResult {
+  layerUsed: 'STRUCTURED' | 'PDF_TABLE' | 'OCR' | 'AI_VISION';
+  draftBookings: DraftBooking[];
+  warnings: string[];
+}
+
+export interface IngestionCommitResult {
+  committed: { rowIndex: number; bookingId: string; action: 'created' | 'updated' }[];
+  skipped: { rowIndex: number; reason: string }[];
+}

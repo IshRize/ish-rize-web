@@ -16,8 +16,11 @@ import type {
   ActivitySummary,
   Booking,
   Clash,
+  DraftBooking,
   GroupSummary,
   HostSummary,
+  IngestionCommitResult,
+  IngestionResult,
   OrgConfig,
   OrgUnit,
   Organization,
@@ -120,6 +123,29 @@ export const schedulingApi = {
   },
   deleteBooking(bookingId: string): Promise<void> {
     return request<void>(`/bookings/${bookingId}`, { method: 'DELETE' });
+  },
+};
+
+export const ingestionApi = {
+  // Bypasses the JSON request() helper deliberately: the browser must compute
+  // the multipart boundary itself when the body is a FormData instance, so no
+  // Content-Type header is set here — the proxy forwards whatever it receives.
+  async parse(file: File, organizationId: string): Promise<IngestionResult> {
+    const form = new FormData();
+    form.append('organizationId', organizationId);
+    form.append('file', file);
+    const res = await fetch(`${PROXY_BASE}/ingestion/parse`, { method: 'POST', body: form });
+    const json = await res.json().catch(() => null);
+    if (!res.ok || !json?.success) {
+      throw new Error(json?.message ?? `Parse failed (${res.status})`);
+    }
+    return json.data as IngestionResult;
+  },
+  commit(termId: string, draftBookings: DraftBooking[]): Promise<IngestionCommitResult> {
+    return request<IngestionCommitResult>('/ingestion/commit', {
+      method: 'POST',
+      body: JSON.stringify({ termId, draftBookings }),
+    });
   },
 };
 
