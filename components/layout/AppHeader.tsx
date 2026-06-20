@@ -1,0 +1,104 @@
+/**
+ * Module: AppHeader
+ * Layer:  web-component (client)
+ * Context: See COPILOT_CONTEXT.md
+ *
+ * Purpose: Shared header for the Schedule/Clashes/Free-finder pages — title,
+ *          nav links, organization/term selectors (backed by
+ *          scheduleSelectionStore so the choice persists across pages), theme
+ *          toggle, sign out.
+ */
+'use client';
+
+import { useEffect } from 'react';
+import Link from 'next/link';
+import { usePathname, useRouter } from 'next/navigation';
+import { useQuery } from '@tanstack/react-query';
+import { schedulingApi } from '@/lib/api';
+import { useAuthStore } from '@/stores/authStore';
+import { useScheduleSelectionStore } from '@/stores/scheduleSelectionStore';
+import { ThemeToggle } from '@/components/ui/ThemeToggle';
+import { Select } from '@/components/ui/Select';
+
+const NAV_LINKS = [
+  { href: '/schedule', label: 'Schedule' },
+  { href: '/clashes', label: 'Clashes' },
+  { href: '/free-finder', label: 'Free finder' },
+];
+
+export function AppHeader({ title }: { title: string }) {
+  const pathname = usePathname();
+  const router = useRouter();
+  const { user, logout } = useAuthStore();
+  const { organizationId, termId, setOrganizationId, setTermId } = useScheduleSelectionStore();
+
+  const orgsQuery = useQuery({ queryKey: ['organizations'], queryFn: schedulingApi.listOrganizations });
+  useEffect(() => {
+    if (!organizationId && orgsQuery.data?.[0]) setOrganizationId(orgsQuery.data[0].id);
+  }, [organizationId, orgsQuery.data, setOrganizationId]);
+
+  const termsQuery = useQuery({
+    queryKey: ['terms', organizationId],
+    queryFn: () => schedulingApi.listTerms(organizationId),
+    enabled: !!organizationId,
+  });
+  useEffect(() => {
+    if (termsQuery.data?.length && !termsQuery.data.some((t) => t.id === termId)) {
+      setTermId(termsQuery.data[0].id);
+    }
+  }, [termId, termsQuery.data, setTermId]);
+
+  return (
+    <header className="mb-6 space-y-4">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div>
+          <h1 className="text-xl font-semibold text-[var(--color-text-primary)]">{title}</h1>
+          <p className="text-sm text-[var(--color-text-secondary)]">
+            Signed in as {user?.firstName} {user?.lastName} ({user?.role})
+          </p>
+        </div>
+        <div className="flex items-center gap-2">
+          <ThemeToggle />
+          <button
+            type="button"
+            onClick={() => logout().then(() => router.push('/login'))}
+            className="rounded-md border border-[var(--color-border)] px-3 py-1.5 text-sm text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)]"
+          >
+            Sign out
+          </button>
+        </div>
+      </div>
+
+      <nav className="flex gap-2">
+        {NAV_LINKS.map((link) => (
+          <Link
+            key={link.href}
+            href={link.href}
+            className={`rounded-md px-3 py-1.5 text-sm ${
+              pathname === link.href
+                ? 'bg-[var(--color-accent)] text-[var(--color-text-inverse)]'
+                : 'text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)]'
+            }`}
+          >
+            {link.label}
+          </Link>
+        ))}
+      </nav>
+
+      <div className="flex flex-wrap gap-3">
+        <Select
+          label="Organization"
+          value={organizationId}
+          onChange={setOrganizationId}
+          options={(orgsQuery.data ?? []).map((o) => ({ value: o.id, label: o.name }))}
+        />
+        <Select
+          label="Term"
+          value={termId}
+          onChange={setTermId}
+          options={(termsQuery.data ?? []).map((t) => ({ value: t.id, label: t.name }))}
+        />
+      </div>
+    </header>
+  );
+}

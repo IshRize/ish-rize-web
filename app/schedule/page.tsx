@@ -1,10 +1,11 @@
 /**
  * Module: Schedule page
  * Layer:  web-page (client)
- * Context: See COPILOT_CONTEXT.md, IMPLEMENTATION_PLAN.md (Phase 2)
+ * Context: See COPILOT_CONTEXT.md, IMPLEMENTATION_PLAN.md (Phase 2/3)
  *
- * Purpose: Render the read-only master schedule grid for a chosen organization
- *          and term, with client-side filtering. No write actions in Phase 2.
+ * Purpose: Render the master schedule grid for the selected organization and
+ *          term, with client-side filtering and clash badges overlaid on
+ *          affected cells. No write actions yet.
  */
 'use client';
 
@@ -14,14 +15,16 @@ import { useQuery } from '@tanstack/react-query';
 import { schedulingApi } from '@/lib/api';
 import { vocab } from '@/lib/vocab';
 import { useAuthStore } from '@/stores/authStore';
-import { ThemeToggle } from '@/components/ui/ThemeToggle';
-import { Select } from '@/components/ui/Select';
+import { useScheduleSelectionStore } from '@/stores/scheduleSelectionStore';
+import { AppHeader } from '@/components/layout/AppHeader';
 import { FilterBar, ALL, type ScheduleFilters } from '@/components/schedule/FilterBar';
 import { ScheduleGrid } from '@/components/schedule/ScheduleGrid';
 
 export default function SchedulePage() {
   const router = useRouter();
-  const { user, isAuthenticated, isLoading: authLoading, loadUser, logout } = useAuthStore();
+  const { isAuthenticated, isLoading: authLoading, loadUser } = useAuthStore();
+  const { organizationId, termId } = useScheduleSelectionStore();
+  const [filters, setFilters] = useState<ScheduleFilters>({ unitId: ALL, level: ALL, kind: ALL, venueId: ALL });
 
   useEffect(() => {
     loadUser();
@@ -31,20 +34,6 @@ export default function SchedulePage() {
   useEffect(() => {
     if (!authLoading && !isAuthenticated) router.replace('/login');
   }, [authLoading, isAuthenticated, router]);
-
-  const [organizationId, setOrganizationId] = useState<string>('');
-  const [termId, setTermId] = useState<string>('');
-  const [filters, setFilters] = useState<ScheduleFilters>({ unitId: ALL, level: ALL, kind: ALL, venueId: ALL });
-
-  const orgsQuery = useQuery({
-    queryKey: ['organizations'],
-    queryFn: schedulingApi.listOrganizations,
-    enabled: isAuthenticated,
-  });
-
-  useEffect(() => {
-    if (!organizationId && orgsQuery.data?.[0]) setOrganizationId(orgsQuery.data[0].id);
-  }, [organizationId, orgsQuery.data]);
 
   const configQuery = useQuery({
     queryKey: ['org-config', organizationId],
@@ -58,22 +47,15 @@ export default function SchedulePage() {
     enabled: !!organizationId,
   });
 
-  const termsQuery = useQuery({
-    queryKey: ['terms', organizationId],
-    queryFn: () => schedulingApi.listTerms(organizationId),
-    enabled: !!organizationId,
-  });
-
-  useEffect(() => {
-    if (termsQuery.data?.length) {
-      const stillValid = termsQuery.data.some((t) => t.id === termId);
-      if (!stillValid) setTermId(termsQuery.data[0].id);
-    }
-  }, [termId, termsQuery.data]);
-
   const scheduleQuery = useQuery({
     queryKey: ['schedule', termId],
     queryFn: () => schedulingApi.getSchedule(termId),
+    enabled: !!termId,
+  });
+
+  const clashesQuery = useQuery({
+    queryKey: ['clashes', termId],
+    queryFn: () => schedulingApi.getClashes(termId),
     enabled: !!termId,
   });
 
@@ -82,8 +64,8 @@ export default function SchedulePage() {
   const allBookings = useMemo(() => scheduleQuery.data?.bookings ?? [], [scheduleQuery.data]);
   const timeSlots = scheduleQuery.data?.timeSlots ?? [];
 
-  // Leaf units only (the deepest level present) — Phase 2 shows the bookable
-  // tier as columns; full tree navigation is a later refinement.
+  // Leaf units only (the deepest level present) — the bookable tier as columns;
+  // full tree navigation is a later refinement.
   const leafUnits = useMemo(() => {
     if (allUnits.length === 0) return [];
     const maxDepth = Math.max(...allUnits.map((u) => u.depth));
@@ -115,41 +97,7 @@ export default function SchedulePage() {
 
   return (
     <main className="min-h-screen bg-[var(--color-bg-primary)] p-6">
-      <header className="mb-6 flex flex-wrap items-center justify-between gap-3">
-        <div>
-          <h1 className="text-xl font-semibold text-[var(--color-text-primary)]">
-            {vocab(config, 'unit') === 'Ministry' ? 'Service Schedule' : 'Master Schedule'}
-          </h1>
-          <p className="text-sm text-[var(--color-text-secondary)]">
-            Signed in as {user?.firstName} {user?.lastName} ({user?.role})
-          </p>
-        </div>
-        <div className="flex items-center gap-2">
-          <ThemeToggle />
-          <button
-            type="button"
-            onClick={() => logout().then(() => router.push('/login'))}
-            className="rounded-md border border-[var(--color-border)] px-3 py-1.5 text-sm text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)]"
-          >
-            Sign out
-          </button>
-        </div>
-      </header>
-
-      <section className="mb-4 flex flex-wrap gap-3">
-        <Select
-          label="Organization"
-          value={organizationId}
-          onChange={setOrganizationId}
-          options={(orgsQuery.data ?? []).map((o) => ({ value: o.id, label: o.name }))}
-        />
-        <Select
-          label="Term"
-          value={termId}
-          onChange={setTermId}
-          options={(termsQuery.data ?? []).map((t) => ({ value: t.id, label: t.name }))}
-        />
-      </section>
+      <AppHeader title={vocab(config, 'unit') === 'Ministry' ? 'Service Schedule' : 'Master Schedule'} />
 
       <section className="mb-4">
         <FilterBar config={config} units={leafUnits} bookings={allBookings} filters={filters} onChange={setFilters} />
@@ -160,7 +108,12 @@ export default function SchedulePage() {
       ) : scheduleQuery.isError ? (
         <p className="text-sm text-[var(--color-error)]">Failed to load schedule.</p>
       ) : (
-        <ScheduleGrid timeSlots={timeSlots} units={filteredUnits} bookings={filteredBookings} />
+        <ScheduleGrid
+          timeSlots={timeSlots}
+          units={filteredUnits}
+          bookings={filteredBookings}
+          clashes={clashesQuery.data}
+        />
       )}
     </main>
   );
