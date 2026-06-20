@@ -40,7 +40,7 @@ export function FilterBar({ config, units, bookings, filters, onChange }: Filter
   );
 
   return (
-    <div className="flex flex-wrap gap-3 rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] p-3">
+    <div className="flex flex-wrap gap-3 rounded-lg border border-[var(--border-default)] bg-[var(--bg-secondary)] p-3">
       <Select
         label={vocab(config, 'unit')}
         value={filters.unitId}

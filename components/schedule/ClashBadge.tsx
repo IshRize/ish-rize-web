@@ -31,7 +31,7 @@ export function ClashBadge({ clashes }: ClashBadgeProps) {
   return (
     <span
       title={title}
-      className="ml-1 inline-flex h-4 w-4 shrink-0 items-center justify-center rounded-full bg-[var(--color-error)] text-[10px] font-bold text-[var(--color-text-inverse)]"
+      className="ml-1 inline-flex h-4 w-4 shrink-0 items-center justify-center rounded-full bg-[var(--fg-clash)] text-[10px] font-bold text-[var(--fg-on-accent-primary)]"
       aria-label={title}
     >
       !

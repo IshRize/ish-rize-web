@@ -74,11 +74,9 @@ export function ScheduleGrid({
         cell: (info) => {
           const slot = info.getValue();
           return (
-            <div className="whitespace-nowrap text-xs">
-              <div className="font-medium text-[var(--color-text-primary)]">{slot.dayOfWeek}</div>
-              <div className="text-[var(--color-text-secondary)]">
-                {slot.label ?? `${slot.startTime}–${slot.endTime}`}
-              </div>
+            <div className="whitespace-nowrap text-xs tabular-nums">
+              <div className="font-medium text-[var(--fg-primary)]">{slot.dayOfWeek}</div>
+              <div className="text-[var(--fg-muted)]">{slot.label ?? `${slot.startTime}–${slot.endTime}`}</div>
             </div>
           );
         },
@@ -105,19 +103,19 @@ export function ScheduleGrid({
   const table = useReactTable({ data: rows, columns, getCoreRowModel: getCoreRowModel() });
 
   if (units.length === 0) {
-    return <p className="text-sm text-[var(--color-text-secondary)]">No units to display.</p>;
+    return <p className="text-sm text-[var(--fg-muted)]">No units to display.</p>;
   }
 
   return (
-    <div className="overflow-x-auto rounded-lg border border-[var(--color-border)]">
+    <div className="overflow-x-auto rounded-lg border border-[var(--border-default)]">
       <table className="w-full border-collapse text-sm">
-        <thead className="bg-[var(--color-surface)]">
+        <thead className="bg-[var(--accent-secondary)]">
           {table.getHeaderGroups().map((headerGroup) => (
             <tr key={headerGroup.id}>
               {headerGroup.headers.map((header) => (
                 <th
                   key={header.id}
-                  className="border-b border-[var(--color-border)] px-3 py-2 text-left text-xs font-semibold text-[var(--color-text-secondary)]"
+                  className="border-b border-[var(--border-default)] px-3 py-2 text-left text-xs font-semibold text-[var(--fg-on-accent-primary)]"
                 >
                   {flexRender(header.column.columnDef.header, header.getContext())}
                 </th>
@@ -127,9 +125,9 @@ export function ScheduleGrid({
         </thead>
         <tbody>
           {table.getRowModel().rows.map((row) => (
-            <tr key={row.id} className="even:bg-[var(--color-bg-secondary)]/40">
+            <tr key={row.id} className="even:bg-[var(--bg-alternate)]/60 hover:bg-[var(--bg-alternate)]">
               {row.getVisibleCells().map((cell) => (
-                <td key={cell.id} className="border-b border-[var(--color-border-light)] px-3 py-2 align-top">
+                <td key={cell.id} className="border-b border-[var(--border-default)] px-3 py-2 align-top">
                   {flexRender(cell.column.columnDef.cell, cell.getContext())}
                 </td>
               ))}
