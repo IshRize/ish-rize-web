@@ -26,11 +26,17 @@ const NAV_LINKS = [
   { href: '/free-finder', label: 'Free finder' },
 ];
 
+// Ingestion mutates the schedule and is coordinator-only on the backend
+// (LECTURER/ADMIN); hide the link rather than send other roles to a 403.
+const COORDINATOR_NAV_LINKS = [{ href: '/ingestion', label: 'Ingestion' }];
+
 export function AppHeader({ title }: { title: string }) {
   const pathname = usePathname();
   const router = useRouter();
   const { user, logout } = useAuthStore();
   const { organizationId, termId, setOrganizationId, setTermId } = useScheduleSelectionStore();
+  const isCoordinator = user?.role === 'LECTURER' || user?.role === 'ADMIN';
+  const navLinks = isCoordinator ? [...NAV_LINKS, ...COORDINATOR_NAV_LINKS] : NAV_LINKS;
 
   const orgsQuery = useQuery({ queryKey: ['organizations'], queryFn: schedulingApi.listOrganizations });
   useEffect(() => {
@@ -70,7 +76,7 @@ export function AppHeader({ title }: { title: string }) {
       </div>
 
       <nav className="flex gap-2">
-        {NAV_LINKS.map((link) => (
+        {navLinks.map((link) => (
           <Link
             key={link.href}
             href={link.href}

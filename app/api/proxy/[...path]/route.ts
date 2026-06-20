@@ -12,6 +12,9 @@
  *
  * Notes:
  * - Thin: no business logic. The backend remains the single source of truth.
+ * - Forwards the original Content-Type and raw bytes (not re-encoded as text),
+ *   so multipart/form-data uploads (e.g. ingestion file parsing) pass through
+ *   with their boundary intact, alongside plain JSON bodies.
  */
 import { NextRequest, NextResponse } from 'next/server';
 import { backendBaseUrl, SESSION_COOKIE } from '@/lib/serverAuth';
@@ -22,16 +25,15 @@ async function forward(req: NextRequest, segments: string[]): Promise<NextRespon
   const search = req.nextUrl.search;
   const target = `${backendBaseUrl()}/${path}${search}`;
 
-  const init: RequestInit = {
-    method: req.method,
-    headers: {
-      'Content-Type': 'application/json',
-      ...(token ? { Authorization: `Bearer ${token}` } : {}),
-    },
-  };
+  const headers: Record<string, string> = {};
+  if (token) headers.Authorization = `Bearer ${token}`;
+
+  const init: RequestInit = { method: req.method, headers };
   if (req.method !== 'GET' && req.method !== 'DELETE') {
-    const body = await req.text();
-    if (body) init.body = body;
+    const contentType = req.headers.get('content-type');
+    if (contentType) headers['Content-Type'] = contentType;
+    const body = await req.arrayBuffer();
+    if (body.byteLength > 0) init.body = body;
   }
 
   const backendRes = await fetch(target, init);
