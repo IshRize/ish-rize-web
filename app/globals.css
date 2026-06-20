@@ -25,12 +25,12 @@
  */
 :root {
   /* Backgrounds */
-  --bg-primary: #f7f9fc;
+  --bg-primary: #fafafa;
   --bg-secondary: #ffffff;
-  --bg-alternate: #eef2f8;
+  --bg-alternate: #f0f0f3;
 
   /* Borders */
-  --border-default: #dde3ed;
+  --border-default: #e2e2e5;
 
   /* Accent — org-themeable (see ThemeToggle.tsx / org config override) */
   --accent-primary: #0052ff;
@@ -55,11 +55,11 @@
 }
 
 [data-theme="dark"] {
-  --bg-primary: #0a0e1a;
-  --bg-secondary: #121829;
-  --bg-alternate: #1a2236;
+  --bg-primary: #0e0e11;
+  --bg-secondary: #18181c;
+  --bg-alternate: #212126;
 
-  --border-default: #262e45;
+  --border-default: #2c2c33;
 
   --accent-primary: #0052ff;
   --accent-primary-hover: #5c92ff;
