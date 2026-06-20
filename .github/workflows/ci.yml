@@ -11,7 +11,7 @@ jobs:
     name: Typecheck, lint & build
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       # The Next.js app is scaffolded in Phase 2. Until package.json exists, the build
       # steps are skipped so CI stays green during the foundation phase.
