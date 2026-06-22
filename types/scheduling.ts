@@ -145,24 +145,26 @@ export interface GroupSummary {
   courseLinks: { courseId: string }[];
 }
 
-export interface DraftBooking {
+// The Master Timetable layer: subject code + level + day + time + venue --
+// no Activity/Host, since the real master export never carries that.
+export interface DraftMasterSlot {
   rowIndex: number;
-  raw: { code: string; day: string; slot: string; venue?: string; host?: string; level?: string };
-  courseId?: string;
+  raw: { subjectCode: string; day: string; slot: string; venue?: string; level?: string };
+  sheet?: string;
+  dayOfWeek?: string;
   timeSlotId?: string;
   venueId?: string;
-  hostId?: string;
   level?: number;
   warnings: string[];
 }
 
-export interface IngestionResult {
+export interface MasterSlotIngestionResult {
   layerUsed: 'STRUCTURED' | 'PDF_TABLE' | 'OCR' | 'AI_VISION';
-  draftBookings: DraftBooking[];
+  draftSlots: DraftMasterSlot[];
   warnings: string[];
 }
 
-export interface IngestionCommitResult {
-  committed: { rowIndex: number; bookingId: string; action: 'created' | 'updated' }[];
+export interface MasterSlotCommitResult {
+  committed: { rowIndex: number; masterSlotId: string; action: 'created' | 'updated' }[];
   skipped: { rowIndex: number; reason: string }[];
 }
