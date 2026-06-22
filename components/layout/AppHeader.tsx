@@ -28,13 +28,14 @@ const NAV_LINKS = [
   { href: '/free-finder', label: 'Free finder' },
 ];
 
-// Ingestion mutates the schedule and is coordinator-only on the backend
-// (LECTURER/ADMIN); hide the link rather than send other roles to a 403.
-const COORDINATOR_NAV_LINKS = [{ href: '/ingestion', label: 'Ingestion' }];
-
-// Department management and coordinator assignment are ADMIN-only on the
-// backend (the "academic affairs" function is just an ADMIN doing this work).
-const ADMIN_NAV_LINKS = [{ href: '/admin', label: 'Admin' }];
+// Department management, coordinator assignment, and master timetable
+// ingestion are all ADMIN-only on the backend (the "academic affairs"
+// function is just an ADMIN doing this work, not a separate role) -- hide
+// these links rather than send other roles to a 403.
+const ADMIN_NAV_LINKS = [
+  { href: '/ingestion', label: 'Ingestion' },
+  { href: '/admin', label: 'Admin' },
+];
 
 interface AppHeaderProps {
   title: string;
@@ -47,13 +48,8 @@ export function AppHeader({ title, endSlot }: AppHeaderProps) {
   const router = useRouter();
   const { user, logout } = useAuthStore();
   const { organizationId, termId, setOrganizationId, setTermId } = useScheduleSelectionStore();
-  const isCoordinator = user?.role === 'LECTURER' || user?.role === 'ADMIN';
   const isAdmin = user?.role === 'ADMIN';
-  const navLinks = [
-    ...NAV_LINKS,
-    ...(isCoordinator ? COORDINATOR_NAV_LINKS : []),
-    ...(isAdmin ? ADMIN_NAV_LINKS : []),
-  ];
+  const navLinks = [...NAV_LINKS, ...(isAdmin ? ADMIN_NAV_LINKS : [])];
 
   const orgsQuery = useQuery({ queryKey: ['organizations'], queryFn: schedulingApi.listOrganizations });
   useEffect(() => {

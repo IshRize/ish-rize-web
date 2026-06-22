@@ -17,11 +17,11 @@ import type {
   Booking,
   Clash,
   CoordinatorAssignment,
-  DraftBooking,
+  DraftMasterSlot,
   GroupSummary,
   HostSummary,
-  IngestionCommitResult,
-  IngestionResult,
+  MasterSlotCommitResult,
+  MasterSlotIngestionResult,
   OrgConfig,
   OrgUnit,
   Organization,
@@ -153,21 +153,22 @@ export const ingestionApi = {
   // Bypasses the JSON request() helper deliberately: the browser must compute
   // the multipart boundary itself when the body is a FormData instance, so no
   // Content-Type header is set here — the proxy forwards whatever it receives.
-  async parse(file: File, organizationId: string): Promise<IngestionResult> {
+  // Master timetable upload -- resolves only venue/timeSlot, no Activity/Host.
+  async parseMaster(file: File, organizationId: string): Promise<MasterSlotIngestionResult> {
     const form = new FormData();
     form.append('organizationId', organizationId);
     form.append('file', file);
-    const res = await fetch(`${PROXY_BASE}/ingestion/parse`, { method: 'POST', body: form });
+    const res = await fetch(`${PROXY_BASE}/ingestion/master/parse`, { method: 'POST', body: form });
     const json = await res.json().catch(() => null);
     if (!res.ok || !json?.success) {
       throw new Error(json?.message ?? `Parse failed (${res.status})`);
     }
-    return json.data as IngestionResult;
+    return json.data as MasterSlotIngestionResult;
   },
-  commit(termId: string, draftBookings: DraftBooking[]): Promise<IngestionCommitResult> {
-    return request<IngestionCommitResult>('/ingestion/commit', {
+  commitMaster(organizationId: string, termId: string, draftSlots: DraftMasterSlot[]): Promise<MasterSlotCommitResult> {
+    return request<MasterSlotCommitResult>('/ingestion/master/commit', {
       method: 'POST',
-      body: JSON.stringify({ termId, draftBookings }),
+      body: JSON.stringify({ organizationId, termId, draftSlots }),
     });
   },
 };
