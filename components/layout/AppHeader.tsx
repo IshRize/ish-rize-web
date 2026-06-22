@@ -32,6 +32,10 @@ const NAV_LINKS = [
 // (LECTURER/ADMIN); hide the link rather than send other roles to a 403.
 const COORDINATOR_NAV_LINKS = [{ href: '/ingestion', label: 'Ingestion' }];
 
+// Department management and coordinator assignment are ADMIN-only on the
+// backend (the "academic affairs" function is just an ADMIN doing this work).
+const ADMIN_NAV_LINKS = [{ href: '/admin', label: 'Admin' }];
+
 interface AppHeaderProps {
   title: string;
   /** Rendered next to the title — e.g. the schedule page's live-sync dot. */
@@ -44,7 +48,12 @@ export function AppHeader({ title, endSlot }: AppHeaderProps) {
   const { user, logout } = useAuthStore();
   const { organizationId, termId, setOrganizationId, setTermId } = useScheduleSelectionStore();
   const isCoordinator = user?.role === 'LECTURER' || user?.role === 'ADMIN';
-  const navLinks = isCoordinator ? [...NAV_LINKS, ...COORDINATOR_NAV_LINKS] : NAV_LINKS;
+  const isAdmin = user?.role === 'ADMIN';
+  const navLinks = [
+    ...NAV_LINKS,
+    ...(isCoordinator ? COORDINATOR_NAV_LINKS : []),
+    ...(isAdmin ? ADMIN_NAV_LINKS : []),
+  ];
 
   const orgsQuery = useQuery({ queryKey: ['organizations'], queryFn: schedulingApi.listOrganizations });
   useEffect(() => {

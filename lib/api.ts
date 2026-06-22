@@ -16,6 +16,7 @@ import type {
   ActivitySummary,
   Booking,
   Clash,
+  CoordinatorAssignment,
   DraftBooking,
   GroupSummary,
   HostSummary,
@@ -73,8 +74,24 @@ export const schedulingApi = {
   getOrgConfig(organizationId: string): Promise<OrgConfig> {
     return request<OrgConfig>(`/organizations/${organizationId}/config`);
   },
-  listOrgUnits(organizationId: string): Promise<OrgUnit[]> {
-    return request<OrgUnit[]>(`/org-units?organizationId=${organizationId}`);
+  listOrgUnits(organizationId: string, includeArchived = false): Promise<OrgUnit[]> {
+    const q = includeArchived ? '&includeArchived=true' : '';
+    return request<OrgUnit[]>(`/org-units?organizationId=${organizationId}${q}`);
+  },
+  createOrgUnit(input: { organizationId: string; parentId: string | null; name: string; unitType: string }): Promise<OrgUnit> {
+    return request<OrgUnit>('/org-units', { method: 'POST', body: JSON.stringify(input) });
+  },
+  updateOrgUnit(id: string, patch: { name?: string; unitType?: string; archived?: boolean }): Promise<OrgUnit> {
+    return request<OrgUnit>(`/org-units/${id}`, { method: 'PATCH', body: JSON.stringify(patch) });
+  },
+  listCoordinatorAssignments(organizationId: string): Promise<CoordinatorAssignment[]> {
+    return request<CoordinatorAssignment[]>(`/coordinator-assignments?organizationId=${organizationId}`);
+  },
+  assignCoordinator(input: { userId: string; orgUnitId: string }): Promise<CoordinatorAssignment> {
+    return request<CoordinatorAssignment>('/coordinator-assignments', { method: 'POST', body: JSON.stringify(input) });
+  },
+  revokeCoordinator(assignmentId: string): Promise<CoordinatorAssignment> {
+    return request<CoordinatorAssignment>(`/coordinator-assignments/${assignmentId}/revoke`, { method: 'PATCH' });
   },
   listTerms(organizationId: string): Promise<Term[]> {
     return request<Term[]>(`/terms?organizationId=${organizationId}`);
@@ -123,6 +140,12 @@ export const schedulingApi = {
   },
   deleteBooking(bookingId: string): Promise<void> {
     return request<void>(`/bookings/${bookingId}`, { method: 'DELETE' });
+  },
+};
+
+export const adminApi = {
+  listUsers(): Promise<User[]> {
+    return request<User[]>('/admin/users');
   },
 };
 

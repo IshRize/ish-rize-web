@@ -49,6 +49,18 @@ export interface OrgUnit {
   unitType: string;
   depth: number;
   orderIndex: number;
+  archived: boolean;
+}
+
+export interface CoordinatorAssignment {
+  id: string;
+  userId: string;
+  orgUnitId: string;
+  assignedBy: string;
+  assignedAt: string;
+  revokedAt: string | null;
+  user: { id: string; firstName: string; lastName: string; email: string };
+  orgUnit: { id: string; name: string };
 }
 
 export interface Term {
