@@ -3,44 +3,57 @@
  * Layer:  web-component (TanStack Table)
  * Context: See COPILOT_CONTEXT.md, ARCHITECTURE.md §6 (web app structure), IMPLEMENTATION_PLAN.md (Phase 4)
  *
- * Purpose: The master schedule grid. Rows are time slots (ordered by the
- *          backend: day, then period); columns are org units. Cells render
- *          BookingCell, with a ClashBadge when the cell's booking appears in the
- *          clash report. Filtering is handled by the parent (already fetched
- *          data, no round-trip). When canEdit is set, empty cells get an add
- *          affordance and bookings get a delete affordance — both delegate to
- *          the parent, which owns the mutations and optimistic updates.
+ * Purpose: The master schedule grid. Rows are distinct time-of-day periods
+ *          (e.g. "7:30–9:30"), ordered by start time; columns are the org's
+ *          configured weekdays (dynamic — read from OrgConfig.weekDays, never
+ *          hardcoded Mon–Fri), in that order. This matches how a real master
+ *          timetable actually reads: one period per row, one day per column.
+ *          A department/unit is a FILTER (see FilterBar), not a grid axis —
+ *          the source format uses one sheet per cohort, which this mirrors by
+ *          scoping the bookings the parent passes in, not by adding a third
+ *          axis to the table.
+ *
+ *          Cells render BookingCell, with a ClashBadge when the cell's booking
+ *          appears in the clash report. When canEdit is set AND a single unit
+ *          is targeted (targetOrgUnitId), empty cells get an add affordance —
+ *          adding a booking needs to know which unit's activities/hosts to
+ *          offer, which a day column alone can't tell you.
  */
 'use client';
 
 import { useMemo } from 'react';
 import { createColumnHelper, getCoreRowModel, useReactTable, flexRender } from '@tanstack/react-table';
 import { BookingCell } from './BookingCell';
-import type { Booking, Clash, OrgUnit, TimeSlot } from '@/types/scheduling';
+import type { Booking, Clash, TimeSlot } from '@/types/scheduling';
 
 interface ScheduleGridProps {
   timeSlots: TimeSlot[];
-  units: OrgUnit[];
+  weekDays: string[];
   bookings: Booking[];
   clashes?: Clash[];
   canEdit?: boolean;
-  onAddBooking?: (timeSlotId: string, orgUnitId: string) => void;
+  targetOrgUnitId?: string;
+  onAddBooking?: (timeSlotId: string) => void;
   onDeleteBooking?: (bookingId: string) => void;
 }
 
-interface GridRow {
-  slot: TimeSlot;
-  cells: Record<string, Booking[]>; // unitId -> bookings in this slot
+interface PeriodRow {
+  key: string;
+  label: string | null;
+  startTime: string;
+  endTime: string;
+  slotsByDay: Record<string, TimeSlot>;
 }
 
-const columnHelper = createColumnHelper<GridRow>();
+const columnHelper = createColumnHelper<PeriodRow>();
 
 export function ScheduleGrid({
   timeSlots,
-  units,
+  weekDays,
   bookings,
   clashes = [],
   canEdit = false,
+  targetOrgUnitId,
   onAddBooking,
   onDeleteBooking,
 }: ScheduleGridProps) {
@@ -56,54 +69,76 @@ export function ScheduleGrid({
     return map;
   }, [clashes]);
 
-  const rows = useMemo<GridRow[]>(() => {
-    return timeSlots.map((slot) => {
-      const cells: Record<string, Booking[]> = {};
-      for (const unit of units) {
-        cells[unit.id] = bookings.filter((b) => b.timeSlotId === slot.id && b.course.orgUnitId === unit.id);
+  const bookingsBySlot = useMemo(() => {
+    const map = new Map<string, Booking[]>();
+    for (const booking of bookings) {
+      const bucket = map.get(booking.timeSlotId) ?? [];
+      bucket.push(booking);
+      map.set(booking.timeSlotId, bucket);
+    }
+    return map;
+  }, [bookings]);
+
+  // Collapse the day-specific TimeSlot rows into one row per distinct period,
+  // so "7:30–9:30" appears once with every configured day as a column —
+  // matching the real master timetable's layout — instead of once per day.
+  const periodRows = useMemo<PeriodRow[]>(() => {
+    const map = new Map<string, PeriodRow>();
+    for (const slot of timeSlots) {
+      const key = `${slot.startTime}__${slot.endTime}`;
+      let row = map.get(key);
+      if (!row) {
+        row = { key, label: slot.label, startTime: slot.startTime, endTime: slot.endTime, slotsByDay: {} };
+        map.set(key, row);
       }
-      return { slot, cells };
-    });
-  }, [timeSlots, units, bookings]);
+      row.slotsByDay[slot.dayOfWeek] = slot;
+    }
+    return Array.from(map.values()).sort((a, b) => a.startTime.localeCompare(b.startTime));
+  }, [timeSlots]);
+
+  const canAdd = canEdit && !!targetOrgUnitId;
 
   const columns = useMemo(
     () => [
-      columnHelper.accessor((row) => row.slot, {
-        id: 'slot',
-        header: 'Day · Period',
+      columnHelper.accessor((row) => row, {
+        id: 'period',
+        header: 'Period',
         cell: (info) => {
-          const slot = info.getValue();
+          const row = info.getValue();
           return (
             <div className="whitespace-nowrap text-xs tabular-nums">
-              <div className="font-medium text-[var(--fg-primary)]">{slot.dayOfWeek}</div>
-              <div className="text-[var(--fg-muted)]">{slot.label ?? `${slot.startTime}–${slot.endTime}`}</div>
+              <div className="font-medium text-[var(--fg-primary)]">{row.label ?? `${row.startTime}–${row.endTime}`}</div>
             </div>
           );
         },
       }),
-      ...units.map((unit) =>
-        columnHelper.accessor((row) => row.cells[unit.id] ?? [], {
-          id: unit.id,
-          header: unit.name,
-          cell: (info) => (
-            <BookingCell
-              bookings={info.getValue()}
-              clashesByBookingId={clashesByBookingId}
-              canEdit={canEdit}
-              onAdd={() => onAddBooking?.(info.row.original.slot.id, unit.id)}
-              onDelete={onDeleteBooking}
-            />
-          ),
+      ...weekDays.map((day) =>
+        columnHelper.accessor((row) => row.slotsByDay[day], {
+          id: day,
+          header: day,
+          cell: (info) => {
+            const slot = info.getValue();
+            if (!slot) return <span className="text-[var(--fg-muted)]">—</span>;
+            return (
+              <BookingCell
+                bookings={bookingsBySlot.get(slot.id) ?? []}
+                clashesByBookingId={clashesByBookingId}
+                canEdit={canAdd}
+                onAdd={() => onAddBooking?.(slot.id)}
+                onDelete={onDeleteBooking}
+              />
+            );
+          },
         }),
       ),
     ],
-    [units, clashesByBookingId, canEdit, onAddBooking, onDeleteBooking],
+    [weekDays, bookingsBySlot, clashesByBookingId, canAdd, onAddBooking, onDeleteBooking],
   );
 
-  const table = useReactTable({ data: rows, columns, getCoreRowModel: getCoreRowModel() });
+  const table = useReactTable({ data: periodRows, columns, getCoreRowModel: getCoreRowModel() });
 
-  if (units.length === 0) {
-    return <p className="text-sm text-[var(--fg-muted)]">No units to display.</p>;
+  if (weekDays.length === 0) {
+    return <p className="text-sm text-[var(--fg-muted)]">No scheduling days configured.</p>;
   }
 
   return (

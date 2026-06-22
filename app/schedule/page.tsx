@@ -30,7 +30,7 @@ export default function SchedulePage() {
   const { user, isAuthenticated, isLoading: authLoading, loadUser } = useAuthStore();
   const { organizationId, termId } = useScheduleSelectionStore();
   const [filters, setFilters] = useState<ScheduleFilters>({ unitId: ALL, level: ALL, kind: ALL, venueId: ALL });
-  const [addTarget, setAddTarget] = useState<{ timeSlotId: string; orgUnitId: string } | null>(null);
+  const [addTimeSlotId, setAddTimeSlotId] = useState<string | null>(null);
   const queryClient = useQueryClient();
 
   useEffect(() => {
@@ -80,10 +80,10 @@ export default function SchedulePage() {
 
   const createMutation = useMutation({
     mutationFn: (input: { courseId: string; hostId?: string; venueId?: string }) =>
-      schedulingApi.createBooking({ ...input, termId, timeSlotId: addTarget!.timeSlotId }),
+      schedulingApi.createBooking({ ...input, termId, timeSlotId: addTimeSlotId! }),
     onSuccess: () => {
       invalidateScheduleAndClashes();
-      setAddTarget(null);
+      setAddTimeSlotId(null);
     },
   });
 
@@ -104,11 +104,6 @@ export default function SchedulePage() {
     const maxDepth = Math.max(...allUnits.map((u) => u.depth));
     return allUnits.filter((u) => u.depth === maxDepth);
   }, [allUnits]);
-
-  const filteredUnits = useMemo(
-    () => (filters.unitId === ALL ? leafUnits : leafUnits.filter((u) => u.id === filters.unitId)),
-    [leafUnits, filters.unitId],
-  );
 
   const filteredBookings = useMemo(() => {
     return allBookings.filter((b) => {
@@ -139,6 +134,13 @@ export default function SchedulePage() {
         <FilterBar config={config} units={leafUnits} bookings={allBookings} filters={filters} onChange={setFilters} />
       </section>
 
+      {canEdit && filters.unitId === ALL && (
+        <p className="mb-4 text-xs text-[var(--fg-muted)]">
+          Select a specific {vocab(config, 'unit').toLowerCase()} above to add bookings — picking one tells the
+          editor which activities and hosts to offer.
+        </p>
+      )}
+
       {scheduleQuery.isLoading ? (
         <p className="text-sm text-[var(--fg-muted)]">Loading schedule…</p>
       ) : scheduleQuery.isError ? (
@@ -146,21 +148,22 @@ export default function SchedulePage() {
       ) : (
         <ScheduleGrid
           timeSlots={timeSlots}
-          units={filteredUnits}
+          weekDays={config?.weekDays ?? []}
           bookings={filteredBookings}
           clashes={clashesQuery.data}
           canEdit={canEdit}
-          onAddBooking={(timeSlotId, orgUnitId) => setAddTarget({ timeSlotId, orgUnitId })}
+          targetOrgUnitId={filters.unitId !== ALL ? filters.unitId : undefined}
+          onAddBooking={(timeSlotId) => setAddTimeSlotId(timeSlotId)}
           onDeleteBooking={(bookingId) => deleteMutation.mutate(bookingId)}
         />
       )}
 
-      {addTarget && (
+      {addTimeSlotId && filters.unitId !== ALL && (
         <AddBookingModal
           organizationId={organizationId}
-          orgUnitId={addTarget.orgUnitId}
+          orgUnitId={filters.unitId}
           config={config}
-          onClose={() => setAddTarget(null)}
+          onClose={() => setAddTimeSlotId(null)}
           onSubmit={(input) => createMutation.mutate(input)}
           isSubmitting={createMutation.isPending}
           error={createMutation.error?.message}
