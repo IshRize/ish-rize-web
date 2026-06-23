@@ -89,6 +89,10 @@ export interface HostSummary {
   title: { abbreviation: string; fullForm: string; rank: number } | null;
 }
 
+export interface MyHost extends HostSummary {
+  orgUnitId: string;
+}
+
 export interface VenueSummary {
   id: string;
   name: string;
@@ -189,7 +193,7 @@ export interface DepartmentBooking {
   host: { id: string; displayName: string; initials: string } | null;
 }
 
-export interface DepartmentTimetableSlot {
+export interface MasterSlotRow {
   id: string;
   organizationId: string;
   termId: string;
@@ -201,5 +205,8 @@ export interface DepartmentTimetableSlot {
   sourceSheet: string | null;
   timeSlot: TimeSlot;
   venue: { id: string; name: string } | null;
+}
+
+export interface DepartmentTimetableSlot extends MasterSlotRow {
   bookings: DepartmentBooking[];
 }

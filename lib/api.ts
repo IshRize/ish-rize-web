@@ -23,6 +23,8 @@ import type {
   HostSummary,
   MasterSlotCommitResult,
   MasterSlotIngestionResult,
+  MasterSlotRow,
+  MyHost,
   OrgConfig,
   OrgUnit,
   Organization,
@@ -111,11 +113,18 @@ export const schedulingApi = {
   getDepartmentTimetable(termId: string, orgUnitId: string): Promise<DepartmentTimetableSlot[]> {
     return request<DepartmentTimetableSlot[]>(`/department-timetable?termId=${termId}&orgUnitId=${orgUnitId}`);
   },
+  listMasterSlots(termId: string): Promise<MasterSlotRow[]> {
+    return request<MasterSlotRow[]>(`/master-slots?termId=${termId}`);
+  },
   listTerms(organizationId: string): Promise<Term[]> {
     return request<Term[]>(`/terms?organizationId=${organizationId}`);
   },
   listHosts(orgUnitId: string): Promise<HostSummary[]> {
     return request<HostSummary[]>(`/hosts?orgUnitId=${orgUnitId}`);
+  },
+  // null when the current user has no Host record (e.g. a non-teaching ADMIN).
+  getMyHost(): Promise<MyHost | null> {
+    return request<MyHost | null>('/hosts/me');
   },
   listVenues(organizationId: string, orgUnitId?: string): Promise<VenueSummary[]> {
     const q = orgUnitId ? `&orgUnitId=${orgUnitId}` : '';
