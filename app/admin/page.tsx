@@ -25,6 +25,11 @@ const SECTIONS = [
     title: 'Department coordinators',
     description: "Grant or revoke a lecturer's permission to manage a specific department's timetable.",
   },
+  {
+    href: '/admin/subject-mappings',
+    title: 'Subject → department mappings',
+    description: 'Map a Master Timetable subject code to the department that owns it.',
+  },
 ];
 
 export default function AdminPage() {

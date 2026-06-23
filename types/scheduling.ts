@@ -168,3 +168,38 @@ export interface MasterSlotCommitResult {
   committed: { rowIndex: number; masterSlotId: string; action: 'created' | 'updated' }[];
   skipped: { rowIndex: number; reason: string }[];
 }
+
+// MasterSlot itself carries no department info -- the file groups by level,
+// not department -- so this is the only link between a coarse subject code
+// and the department that owns it.
+export interface SubjectDepartmentMapping {
+  id: string;
+  organizationId: string;
+  subjectCode: string;
+  orgUnitId: string;
+  orgUnit: { id: string; name: string };
+}
+
+// A decomposed offering: a department coordinator turned a MasterSlot into a
+// named Course + lecturer. Lighter than the full Booking type since this is
+// nested inside a department-timetable row, not standalone.
+export interface DepartmentBooking {
+  id: string;
+  course: { id: string; code: string; name: string };
+  host: { id: string; displayName: string; initials: string } | null;
+}
+
+export interface DepartmentTimetableSlot {
+  id: string;
+  organizationId: string;
+  termId: string;
+  subjectCode: string;
+  level: number | null;
+  dayOfWeek: string;
+  timeSlotId: string;
+  venueId: string | null;
+  sourceSheet: string | null;
+  timeSlot: TimeSlot;
+  venue: { id: string; name: string } | null;
+  bookings: DepartmentBooking[];
+}

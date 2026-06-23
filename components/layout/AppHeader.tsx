@@ -37,6 +37,11 @@ const ADMIN_NAV_LINKS = [
   { href: '/admin', label: 'Admin' },
 ];
 
+// Visible to any LECTURER (not just ones who currently coordinate a
+// department) since that's a scoped permission that can change at any time;
+// the page itself shows an empty state for a lecturer with no assignment.
+const COORDINATOR_NAV_LINKS = [{ href: '/department-timetable', label: 'Department' }];
+
 interface AppHeaderProps {
   title: string;
   /** Rendered next to the title — e.g. the schedule page's live-sync dot. */
@@ -49,7 +54,12 @@ export function AppHeader({ title, endSlot }: AppHeaderProps) {
   const { user, logout } = useAuthStore();
   const { organizationId, termId, setOrganizationId, setTermId } = useScheduleSelectionStore();
   const isAdmin = user?.role === 'ADMIN';
-  const navLinks = [...NAV_LINKS, ...(isAdmin ? ADMIN_NAV_LINKS : [])];
+  const isCoordinatorEligible = user?.role === 'LECTURER' || isAdmin;
+  const navLinks = [
+    ...NAV_LINKS,
+    ...(isCoordinatorEligible ? COORDINATOR_NAV_LINKS : []),
+    ...(isAdmin ? ADMIN_NAV_LINKS : []),
+  ];
 
   const orgsQuery = useQuery({ queryKey: ['organizations'], queryFn: schedulingApi.listOrganizations });
   useEffect(() => {
