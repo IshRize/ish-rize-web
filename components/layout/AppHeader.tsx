@@ -22,8 +22,13 @@ import { useScheduleSelectionStore } from '@/stores/scheduleSelectionStore';
 import { ThemeToggle } from '@/components/ui/ThemeToggle';
 import { Select } from '@/components/ui/Select';
 
+// Master Timetable is read-only and visible to absolutely everyone (a
+// lecturer needs to see time/venue before a department coordinator has
+// decomposed their subject into a named offering) -- editing it means
+// re-uploading via /ingestion (ADMIN-only there), not anything inline here.
 const NAV_LINKS = [
   { href: '/schedule', label: 'Schedule' },
+  { href: '/master-timetable', label: 'Master Timetable' },
   { href: '/clashes', label: 'Clashes' },
   { href: '/free-finder', label: 'Free finder' },
 ];
@@ -38,9 +43,13 @@ const ADMIN_NAV_LINKS = [
 ];
 
 // Visible to any LECTURER (not just ones who currently coordinate a
-// department) since that's a scoped permission that can change at any time;
-// the page itself shows an empty state for a lecturer with no assignment.
-const COORDINATOR_NAV_LINKS = [{ href: '/department-timetable', label: 'Department' }];
+// department, or who's currently assigned to teach anything) since both are
+// scoped/assigned states that can change at any time; each page shows its
+// own empty state otherwise.
+const LECTURER_NAV_LINKS = [
+  { href: '/my-timetable', label: 'My Timetable' },
+  { href: '/department-timetable', label: 'Department' },
+];
 
 interface AppHeaderProps {
   title: string;
@@ -54,10 +63,10 @@ export function AppHeader({ title, endSlot }: AppHeaderProps) {
   const { user, logout } = useAuthStore();
   const { organizationId, termId, setOrganizationId, setTermId } = useScheduleSelectionStore();
   const isAdmin = user?.role === 'ADMIN';
-  const isCoordinatorEligible = user?.role === 'LECTURER' || isAdmin;
+  const isLecturerEligible = user?.role === 'LECTURER' || isAdmin;
   const navLinks = [
     ...NAV_LINKS,
-    ...(isCoordinatorEligible ? COORDINATOR_NAV_LINKS : []),
+    ...(isLecturerEligible ? LECTURER_NAV_LINKS : []),
     ...(isAdmin ? ADMIN_NAV_LINKS : []),
   ];
 

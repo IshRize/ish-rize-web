@@ -1,14 +1,16 @@
 /**
  * Module: Department Timetable page
  * Layer:  web-page (client)
- * Context: See COPILOT_CONTEXT.md; three-tier timetable refactor Phase 3
+ * Context: See COPILOT_CONTEXT.md; three-tier timetable refactor Phase 3/4
  *
- * Purpose: A department coordinator's (or ADMIN's) view of their department's
- *          Master Timetable slots -- decompose an undecomposed slot into a
- *          named Course + lecturer, reassign the lecturer on one already
- *          decomposed, or remove an offering. Backend enforces the actual
- *          scope (canManageDepartment); this page just doesn't show a
- *          department the user has no reason to see.
+ * Purpose: Any authenticated user can VIEW any department's timetable
+ *          read-only -- a lecturer in a department needs to see what their
+ *          colleagues are teaching even if they don't coordinate it. Only
+ *          that department's coordinator (or ADMIN) gets the edit affordances
+ *          (decompose/reassign/remove). The backend is the real boundary
+ *          (canManageDepartment, already enforced on every mutation); this is
+ *          just the UI reflecting it so a non-coordinator isn't shown buttons
+ *          that would 403.
  */
 'use client';
 
@@ -46,10 +48,12 @@ export default function DepartmentTimetablePage() {
 
   const isAdmin = user?.role === 'ADMIN';
 
+  // Anyone can VIEW any department; the picker offers all of them. Editing is
+  // gated separately below, by canEditThisDept.
   const allUnitsQuery = useQuery({
     queryKey: ['org-units', organizationId],
     queryFn: () => schedulingApi.listOrgUnits(organizationId),
-    enabled: !!organizationId && isAdmin,
+    enabled: !!organizationId,
   });
   const myAssignmentsQuery = useQuery({
     queryKey: ['my-coordinator-assignments'],
@@ -57,13 +61,9 @@ export default function DepartmentTimetablePage() {
     enabled: !!isAuthenticated && !isAdmin,
   });
 
-  // ADMIN can manage any department; a coordinator only sees the ones they're
-  // actually assigned to -- backend enforces this regardless, this just keeps
-  // the picker from offering departments the request would 403 on anyway.
-  const availableDepartments = useMemo(() => {
-    if (isAdmin) return (allUnitsQuery.data ?? []).map((u) => ({ id: u.id, name: u.name }));
-    return (myAssignmentsQuery.data ?? []).map((a) => a.orgUnit);
-  }, [isAdmin, allUnitsQuery.data, myAssignmentsQuery.data]);
+  const availableDepartments = useMemo(() => (allUnitsQuery.data ?? []).map((u) => ({ id: u.id, name: u.name })), [allUnitsQuery.data]);
+
+  const canEditThisDept = isAdmin || (myAssignmentsQuery.data ?? []).some((a) => a.orgUnit.id === orgUnitId);
 
   useEffect(() => {
     if (!orgUnitId && availableDepartments.length > 0) setOrgUnitId(availableDepartments[0].id);
@@ -139,9 +139,9 @@ export default function DepartmentTimetablePage() {
         />
       </section>
 
-      {!isAdmin && availableDepartments.length === 0 && (
-        <p className="text-sm text-[var(--fg-muted)]">
-          You aren&apos;t a department timetable coordinator for any department yet. Ask an admin to assign you one.
+      {!isAdmin && orgUnitId && !canEditThisDept && (
+        <p className="mb-3 text-xs text-[var(--fg-muted)]">
+          You&apos;re viewing this department read-only. Ask an admin to make you its coordinator to decompose or reassign offerings.
         </p>
       )}
 
@@ -183,38 +183,48 @@ export default function DepartmentTimetablePage() {
                             {slot.bookings.map((b) => (
                               <li key={b.id} className="flex items-center gap-2">
                                 <span className="text-[var(--fg-primary)]">{b.course.code}</span>
-                                <select
-                                  value={b.host?.id ?? UNASSIGNED}
-                                  onChange={(e) => reassignMutation.mutate({ bookingId: b.id, hostId: e.target.value || null })}
-                                  className="rounded-md border border-[var(--border-default)] bg-[var(--bg-secondary)] px-2 py-1 text-xs text-[var(--fg-primary)]"
-                                >
-                                  <option value={UNASSIGNED}>Unassigned</option>
-                                  {hostOptions.map((o) => (
-                                    <option key={o.value} value={o.value}>
-                                      {o.label}
-                                    </option>
-                                  ))}
-                                </select>
-                                <button
-                                  type="button"
-                                  onClick={() => removeMutation.mutate(b.id)}
-                                  className="text-xs text-[var(--fg-clash)] hover:underline"
-                                >
-                                  Remove
-                                </button>
+                                {canEditThisDept ? (
+                                  <>
+                                    <select
+                                      value={b.host?.id ?? UNASSIGNED}
+                                      onChange={(e) => reassignMutation.mutate({ bookingId: b.id, hostId: e.target.value || null })}
+                                      className="rounded-md border border-[var(--border-default)] bg-[var(--bg-secondary)] px-2 py-1 text-xs text-[var(--fg-primary)]"
+                                    >
+                                      <option value={UNASSIGNED}>Unassigned</option>
+                                      {hostOptions.map((o) => (
+                                        <option key={o.value} value={o.value}>
+                                          {o.label}
+                                        </option>
+                                      ))}
+                                    </select>
+                                    <button
+                                      type="button"
+                                      onClick={() => removeMutation.mutate(b.id)}
+                                      className="text-xs text-[var(--fg-clash)] hover:underline"
+                                    >
+                                      Remove
+                                    </button>
+                                  </>
+                                ) : (
+                                  <span className="text-[var(--fg-muted)]">{b.host?.displayName ?? 'Unassigned'}</span>
+                                )}
                               </li>
                             ))}
                           </ul>
                         )}
                       </td>
                       <td className="border-b border-[var(--border-default)] px-3 py-2 align-top">
-                        <button
-                          type="button"
-                          onClick={() => setDecomposeSlot(slot)}
-                          className="text-xs text-[var(--fg-muted)] hover:text-[var(--fg-primary)]"
-                        >
-                          {slot.bookings.length === 0 ? '+ Add offering' : '+ Add another'}
-                        </button>
+                        {canEditThisDept ? (
+                          <button
+                            type="button"
+                            onClick={() => setDecomposeSlot(slot)}
+                            className="text-xs text-[var(--fg-muted)] hover:text-[var(--fg-primary)]"
+                          >
+                            {slot.bookings.length === 0 ? '+ Add offering' : '+ Add another'}
+                          </button>
+                        ) : (
+                          <span className="text-[var(--fg-muted)]">—</span>
+                        )}
                       </td>
                     </tr>
                   ))}
