@@ -17,6 +17,7 @@ import type {
   Booking,
   Clash,
   CoordinatorAssignment,
+  DepartmentTimetableSlot,
   DraftMasterSlot,
   GroupSummary,
   HostSummary,
@@ -26,6 +27,7 @@ import type {
   OrgUnit,
   Organization,
   ScheduleResponse,
+  SubjectDepartmentMapping,
   Term,
   TimeSlot,
   User,
@@ -87,11 +89,27 @@ export const schedulingApi = {
   listCoordinatorAssignments(organizationId: string): Promise<CoordinatorAssignment[]> {
     return request<CoordinatorAssignment[]>(`/coordinator-assignments?organizationId=${organizationId}`);
   },
+  // Self-scoped: which departments does the CURRENT user coordinate.
+  listMyCoordinatorAssignments(): Promise<CoordinatorAssignment[]> {
+    return request<CoordinatorAssignment[]>('/coordinator-assignments/me');
+  },
   assignCoordinator(input: { userId: string; orgUnitId: string }): Promise<CoordinatorAssignment> {
     return request<CoordinatorAssignment>('/coordinator-assignments', { method: 'POST', body: JSON.stringify(input) });
   },
   revokeCoordinator(assignmentId: string): Promise<CoordinatorAssignment> {
     return request<CoordinatorAssignment>(`/coordinator-assignments/${assignmentId}/revoke`, { method: 'PATCH' });
+  },
+  listSubjectDepartmentMappings(organizationId: string): Promise<SubjectDepartmentMapping[]> {
+    return request<SubjectDepartmentMapping[]>(`/subject-department-mappings?organizationId=${organizationId}`);
+  },
+  upsertSubjectDepartmentMapping(input: { organizationId: string; subjectCode: string; orgUnitId: string }): Promise<SubjectDepartmentMapping> {
+    return request<SubjectDepartmentMapping>('/subject-department-mappings', { method: 'POST', body: JSON.stringify(input) });
+  },
+  deleteSubjectDepartmentMapping(id: string): Promise<void> {
+    return request<void>(`/subject-department-mappings/${id}`, { method: 'DELETE' });
+  },
+  getDepartmentTimetable(termId: string, orgUnitId: string): Promise<DepartmentTimetableSlot[]> {
+    return request<DepartmentTimetableSlot[]>(`/department-timetable?termId=${termId}&orgUnitId=${orgUnitId}`);
   },
   listTerms(organizationId: string): Promise<Term[]> {
     return request<Term[]>(`/terms?organizationId=${organizationId}`);
@@ -135,8 +153,15 @@ export const schedulingApi = {
     hostId?: string;
     venueId?: string;
     level?: number;
+    masterSlotId?: string;
   }): Promise<Booking> {
     return request<Booking>('/bookings', { method: 'POST', body: JSON.stringify(input) });
+  },
+  updateBooking(
+    bookingId: string,
+    patch: { hostId?: string | null; venueId?: string | null; timeSlotId?: string; level?: number | null; groupTag?: string | null; note?: string | null },
+  ): Promise<Booking> {
+    return request<Booking>(`/bookings/${bookingId}`, { method: 'PATCH', body: JSON.stringify(patch) });
   },
   deleteBooking(bookingId: string): Promise<void> {
     return request<void>(`/bookings/${bookingId}`, { method: 'DELETE' });
