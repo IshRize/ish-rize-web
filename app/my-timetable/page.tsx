@@ -45,9 +45,15 @@ export default function MyTimetablePage() {
     queryFn: () => schedulingApi.getSchedule(termId),
     enabled: !!termId,
   });
+  const loadQuery = useQuery({
+    queryKey: ['my-teaching-load', termId],
+    queryFn: () => schedulingApi.getMyTeachingLoad(termId),
+    enabled: !!termId,
+  });
 
   const myHost = myHostQuery.data;
   const myBookings = (scheduleQuery.data?.bookings ?? []).filter((b) => b.host?.id === myHost?.id);
+  const load = loadQuery.data;
 
   if (authLoading || !isAuthenticated) {
     return (
@@ -60,6 +66,25 @@ export default function MyTimetablePage() {
   return (
     <main className="min-h-screen bg-[var(--bg-primary)] p-6">
       <AppHeader title="My Timetable" />
+
+      {load && load.bookingCount > 0 && (
+        <section className="mb-4 rounded-lg border border-[var(--border-default)] bg-[var(--bg-secondary)] p-4">
+          <h2 className="text-sm font-semibold text-[var(--fg-primary)]">My teaching load this term</h2>
+          <p className="mt-1 text-xs text-[var(--fg-muted)]">Scheduled hours, a proxy for time on campus -- not measured attendance.</p>
+          <div className="mt-3 flex flex-wrap gap-3 text-sm">
+            <span className="text-[var(--fg-primary)]">
+              {(load.totalMinutes / 60).toFixed(1)}h total · {load.bookingCount} booking(s)
+            </span>
+          </div>
+          <ul className="mt-2 space-y-1 text-xs text-[var(--fg-muted)]">
+            {load.courses.map((c) => (
+              <li key={c.courseId}>
+                {c.code} — {(c.minutes / 60).toFixed(1)}h ({c.bookingCount} booking(s))
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
 
       {myHostQuery.isLoading || scheduleQuery.isLoading ? (
         <p className="text-sm text-[var(--fg-muted)]">Loading…</p>
