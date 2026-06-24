@@ -19,6 +19,7 @@ import { vocab } from '@/lib/vocab';
 import { useAuthStore } from '@/stores/authStore';
 import { useScheduleSelectionStore } from '@/stores/scheduleSelectionStore';
 import { AppHeader } from '@/components/layout/AppHeader';
+import { AppShell } from '@/components/layout/AppShell';
 import { Select } from '@/components/ui/Select';
 import type { TimeSlot } from '@/types/scheduling';
 
@@ -133,7 +134,7 @@ export default function FreeFinderPage() {
   }
 
   return (
-    <main className="min-h-screen bg-[var(--bg-primary)] p-6">
+    <AppShell>
       <AppHeader title="Free Finder" />
 
       <div className="grid gap-6 lg:grid-cols-3">
@@ -201,6 +202,6 @@ export default function FreeFinderPage() {
           <TimeSlotList slots={freeVenueSlotsQuery.data} />
         </section>
       </div>
-    </main>
+    </AppShell>
   );
 }

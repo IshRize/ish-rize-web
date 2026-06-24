@@ -19,6 +19,7 @@ import { schedulingApi } from '@/lib/api';
 import { useAuthStore } from '@/stores/authStore';
 import { useScheduleSelectionStore } from '@/stores/scheduleSelectionStore';
 import { AppHeader } from '@/components/layout/AppHeader';
+import { AppShell } from '@/components/layout/AppShell';
 import { MasterTimetableGrid } from '@/components/master-timetable/MasterTimetableGrid';
 import { Select } from '@/components/ui/Select';
 
@@ -63,7 +64,7 @@ export default function MasterTimetablePage() {
   }
 
   return (
-    <main className="min-h-screen bg-[var(--bg-primary)] p-6">
+    <AppShell>
       <AppHeader title="Master Timetable" />
 
       <section className="mb-4 flex flex-wrap gap-3 rounded-lg border border-[var(--border-default)] bg-[var(--bg-secondary)] p-3">
@@ -82,6 +83,6 @@ export default function MasterTimetablePage() {
       ) : (
         <MasterTimetableGrid slots={filteredSlots} weekDays={configQuery.data?.weekDays ?? []} />
       )}
-    </main>
+    </AppShell>
   );
 }

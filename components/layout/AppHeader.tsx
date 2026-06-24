@@ -1,56 +1,25 @@
 /**
  * Module: AppHeader
  * Layer:  web-component (client)
- * Context: See COPILOT_CONTEXT.md
+ * Context: See COPILOT_CONTEXT.md; nav/theme-toggle/sign-out moved to
+ *          Sidebar in UI/UX redesign Phase 2 -- this now only carries the
+ *          page title and the organization/term selectors.
  *
- * Purpose: Shared header for the Schedule/Clashes/Free-finder/Ingestion pages —
- *          title, nav links, organization/term selectors (backed by
- *          scheduleSelectionStore so the choice persists across pages), theme
- *          toggle, sign out. Applies the org-neutral accent override
- *          (lib/orgTheme.ts) the moment an org's config resolves.
+ * Purpose: Shared header for the Schedule/Clashes/Free-finder/Ingestion
+ *          pages — title, organization/term selectors (backed by
+ *          scheduleSelectionStore so the choice persists across pages).
+ *          Applies the org-neutral accent override (lib/orgTheme.ts) the
+ *          moment an org's config resolves.
  */
 'use client';
 
 import { useEffect } from 'react';
-import Link from 'next/link';
-import { usePathname, useRouter } from 'next/navigation';
 import { useQuery } from '@tanstack/react-query';
 import { schedulingApi } from '@/lib/api';
 import { applyOrgAccentOverride } from '@/lib/orgTheme';
 import { useAuthStore } from '@/stores/authStore';
 import { useScheduleSelectionStore } from '@/stores/scheduleSelectionStore';
-import { ThemeToggle } from '@/components/ui/ThemeToggle';
 import { Select } from '@/components/ui/Select';
-
-// Master Timetable is read-only and visible to absolutely everyone (a
-// lecturer needs to see time/venue before a department coordinator has
-// decomposed their subject into a named offering) -- editing it means
-// re-uploading via /ingestion (ADMIN-only there), not anything inline here.
-const NAV_LINKS = [
-  { href: '/schedule', label: 'Schedule' },
-  { href: '/master-timetable', label: 'Master Timetable' },
-  { href: '/clashes', label: 'Clashes' },
-  { href: '/free-finder', label: 'Free finder' },
-];
-
-// Department management, coordinator assignment, and master timetable
-// ingestion are all ADMIN-only on the backend (the "academic affairs"
-// function is just an ADMIN doing this work, not a separate role) -- hide
-// these links rather than send other roles to a 403.
-const ADMIN_NAV_LINKS = [
-  { href: '/ingestion', label: 'Ingestion' },
-  { href: '/admin', label: 'Admin' },
-];
-
-// Visible to any LECTURER (not just ones who currently coordinate a
-// department, or who's currently assigned to teach anything) since both are
-// scoped/assigned states that can change at any time; each page shows its
-// own empty state otherwise.
-const LECTURER_NAV_LINKS = [
-  { href: '/my-timetable', label: 'My Timetable' },
-  { href: '/department-timetable', label: 'Department' },
-  { href: '/teaching-load', label: 'Teaching Load' },
-];
 
 interface AppHeaderProps {
   title: string;
@@ -59,17 +28,8 @@ interface AppHeaderProps {
 }
 
 export function AppHeader({ title, endSlot }: AppHeaderProps) {
-  const pathname = usePathname();
-  const router = useRouter();
-  const { user, logout } = useAuthStore();
+  const { user } = useAuthStore();
   const { organizationId, termId, setOrganizationId, setTermId } = useScheduleSelectionStore();
-  const isAdmin = user?.role === 'ADMIN';
-  const isLecturerEligible = user?.role === 'LECTURER' || isAdmin;
-  const navLinks = [
-    ...NAV_LINKS,
-    ...(isLecturerEligible ? LECTURER_NAV_LINKS : []),
-    ...(isAdmin ? ADMIN_NAV_LINKS : []),
-  ];
 
   const orgsQuery = useQuery({ queryKey: ['organizations'], queryFn: schedulingApi.listOrganizations });
   useEffect(() => {
@@ -110,33 +70,7 @@ export function AppHeader({ title, endSlot }: AppHeaderProps) {
             Signed in as {user?.firstName} {user?.lastName} ({user?.role})
           </p>
         </div>
-        <div className="flex items-center gap-2">
-          <ThemeToggle />
-          <button
-            type="button"
-            onClick={() => logout().then(() => router.push('/login'))}
-            className="rounded-md border border-[var(--border-default)] px-3 py-1.5 text-sm text-[var(--fg-muted)] hover:text-[var(--fg-primary)]"
-          >
-            Sign out
-          </button>
-        </div>
       </div>
-
-      <nav className="flex gap-2">
-        {navLinks.map((link) => (
-          <Link
-            key={link.href}
-            href={link.href}
-            className={`rounded-md px-3 py-1.5 text-sm ${
-              pathname === link.href
-                ? 'bg-[var(--accent-primary)] text-[var(--fg-on-accent-primary)]'
-                : 'text-[var(--fg-muted)] hover:text-[var(--fg-primary)]'
-            }`}
-          >
-            {link.label}
-          </Link>
-        ))}
-      </nav>
 
       <div className="flex flex-wrap gap-3">
         <Select

@@ -20,6 +20,7 @@ import { useAuthStore } from '@/stores/authStore';
 import { useScheduleSelectionStore } from '@/stores/scheduleSelectionStore';
 import { useScheduleSocket } from '@/hooks/useScheduleSocket';
 import { AppHeader } from '@/components/layout/AppHeader';
+import { AppShell } from '@/components/layout/AppShell';
 import { LiveSyncIndicator } from '@/components/ui/LiveSyncIndicator';
 import { FilterBar, ALL, type ScheduleFilters } from '@/components/schedule/FilterBar';
 import { ScheduleGrid } from '@/components/schedule/ScheduleGrid';
@@ -137,7 +138,7 @@ export default function SchedulePage() {
   }
 
   return (
-    <main className="min-h-screen bg-[var(--bg-primary)] p-6">
+    <AppShell>
       <AppHeader
         title={vocab(config, 'unit') === 'Ministry' ? 'Service Schedule' : 'Master Schedule'}
         endSlot={<LiveSyncIndicator connected={connected} />}
@@ -189,6 +190,6 @@ export default function SchedulePage() {
           error={createMutation.error?.message}
         />
       )}
-    </main>
+    </AppShell>
   );
 }

@@ -21,6 +21,7 @@ import { schedulingApi } from '@/lib/api';
 import { useAuthStore } from '@/stores/authStore';
 import { useScheduleSelectionStore } from '@/stores/scheduleSelectionStore';
 import { AppHeader } from '@/components/layout/AppHeader';
+import { AppShell } from '@/components/layout/AppShell';
 import { DecomposeMasterSlotModal } from '@/components/department-timetable/DecomposeMasterSlotModal';
 import { Select } from '@/components/ui/Select';
 import type { DepartmentTimetableSlot, HostSummary } from '@/types/scheduling';
@@ -127,7 +128,7 @@ export default function DepartmentTimetablePage() {
   const hostOptions = (hostsQuery.data ?? []).map((h: HostSummary) => ({ value: h.id, label: h.displayName }));
 
   return (
-    <main className="min-h-screen bg-[var(--bg-primary)] p-6">
+    <AppShell>
       <AppHeader title="Department Timetable" />
 
       <section className="mb-4 flex flex-wrap items-end gap-3 rounded-lg border border-[var(--border-default)] bg-[var(--bg-secondary)] p-4">
@@ -248,6 +249,6 @@ export default function DepartmentTimetablePage() {
           error={decomposeError}
         />
       )}
-    </main>
+    </AppShell>
   );
 }

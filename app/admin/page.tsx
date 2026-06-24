@@ -13,6 +13,7 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useAuthStore } from '@/stores/authStore';
 import { AppHeader } from '@/components/layout/AppHeader';
+import { AppShell } from '@/components/layout/AppShell';
 
 const SECTIONS = [
   {
@@ -55,7 +56,7 @@ export default function AdminPage() {
   }
 
   return (
-    <main className="min-h-screen bg-[var(--bg-primary)] p-6">
+    <AppShell>
       <AppHeader title="Admin" />
       <div className="grid gap-4 sm:grid-cols-2">
         {SECTIONS.map((s) => (
@@ -69,6 +70,6 @@ export default function AdminPage() {
           </Link>
         ))}
       </div>
-    </main>
+    </AppShell>
   );
 }

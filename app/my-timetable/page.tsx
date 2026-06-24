@@ -18,6 +18,7 @@ import { schedulingApi } from '@/lib/api';
 import { useAuthStore } from '@/stores/authStore';
 import { useScheduleSelectionStore } from '@/stores/scheduleSelectionStore';
 import { AppHeader } from '@/components/layout/AppHeader';
+import { AppShell } from '@/components/layout/AppShell';
 import { ScheduleGrid } from '@/components/schedule/ScheduleGrid';
 
 export default function MyTimetablePage() {
@@ -64,7 +65,7 @@ export default function MyTimetablePage() {
   }
 
   return (
-    <main className="min-h-screen bg-[var(--bg-primary)] p-6">
+    <AppShell>
       <AppHeader title="My Timetable" />
 
       {load && load.bookingCount > 0 && (
@@ -95,6 +96,6 @@ export default function MyTimetablePage() {
       ) : (
         <ScheduleGrid timeSlots={scheduleQuery.data?.timeSlots ?? []} weekDays={configQuery.data?.weekDays ?? []} bookings={myBookings} canEdit={false} />
       )}
-    </main>
+    </AppShell>
   );
 }
