@@ -174,6 +174,33 @@ export interface MasterSlotCommitResult {
   skipped: { rowIndex: number; reason: string }[];
 }
 
+// Department-level ingestion (dept-coordinator tooling Phase 5): unlike the
+// master file, a department's own export already carries Course + Host per
+// row -- these decomposed offerings resolve directly into Booking, never
+// MasterSlot.
+export interface DraftBooking {
+  rowIndex: number;
+  raw: { code: string; day: string; slot: string; venue?: string; host?: string; level?: string };
+  sheet?: string;
+  courseId?: string;
+  timeSlotId?: string;
+  venueId?: string;
+  hostId?: string;
+  level?: number;
+  warnings: string[];
+}
+
+export interface BookingIngestionResult {
+  layerUsed: 'STRUCTURED' | 'PDF_TABLE' | 'OCR' | 'AI_VISION';
+  draftBookings: DraftBooking[];
+  warnings: string[];
+}
+
+export interface BookingIngestionCommitResult {
+  committed: { rowIndex: number; bookingId: string; action: 'created' | 'updated' }[];
+  skipped: { rowIndex: number; reason: string }[];
+}
+
 // MasterSlot itself carries no department info -- the file groups by level,
 // not department -- so this is the only link between a coarse subject code
 // and the department that owns it.

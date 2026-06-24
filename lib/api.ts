@@ -15,9 +15,12 @@
 import type {
   ActivitySummary,
   Booking,
+  BookingIngestionCommitResult,
+  BookingIngestionResult,
   Clash,
   CoordinatorAssignment,
   DepartmentTimetableSlot,
+  DraftBooking,
   DraftMasterSlot,
   GroupSummary,
   HostSummary,
@@ -221,6 +224,27 @@ export const ingestionApi = {
     return request<MasterSlotCommitResult>('/ingestion/master/commit', {
       method: 'POST',
       body: JSON.stringify({ organizationId, termId, draftSlots }),
+    });
+  },
+  // Department-level ingestion: a decomposed file (Course + Host already
+  // resolved per row) -- orgUnitId is required for a LECTURER coordinator,
+  // optional (org-wide) for ADMIN.
+  async parseBookings(file: File, organizationId: string, orgUnitId?: string): Promise<BookingIngestionResult> {
+    const form = new FormData();
+    form.append('organizationId', organizationId);
+    if (orgUnitId) form.append('orgUnitId', orgUnitId);
+    form.append('file', file);
+    const res = await fetch(`${PROXY_BASE}/ingestion/parse`, { method: 'POST', body: form });
+    const json = await res.json().catch(() => null);
+    if (!res.ok || !json?.success) {
+      throw new Error(json?.message ?? `Parse failed (${res.status})`);
+    }
+    return json.data as BookingIngestionResult;
+  },
+  commitBookings(termId: string, draftBookings: DraftBooking[], orgUnitId?: string): Promise<BookingIngestionCommitResult> {
+    return request<BookingIngestionCommitResult>('/ingestion/commit', {
+      method: 'POST',
+      body: JSON.stringify({ termId, orgUnitId, draftBookings }),
     });
   },
 };

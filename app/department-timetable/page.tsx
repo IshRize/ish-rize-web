@@ -24,6 +24,7 @@ import { AppHeader } from '@/components/layout/AppHeader';
 import { AppShell } from '@/components/layout/AppShell';
 import { DecomposeMasterSlotModal } from '@/components/department-timetable/DecomposeMasterSlotModal';
 import { DepartmentScheduleGrid } from '@/components/department-timetable/DepartmentScheduleGrid';
+import { ImportDepartmentTimetableModal } from '@/components/department-timetable/ImportDepartmentTimetableModal';
 import { ClashBadge } from '@/components/schedule/ClashBadge';
 import { Select } from '@/components/ui/Select';
 import type { Clash, DepartmentTimetableSlot, HostSummary } from '@/types/scheduling';
@@ -47,6 +48,7 @@ export default function DepartmentTimetablePage() {
   const [view, setView] = useState<'manage' | 'grid'>('manage');
   const [undoStack, setUndoStack] = useState<UndoEntry[]>([]);
   const [autoRescheduleError, setAutoRescheduleError] = useState<string | null>(null);
+  const [showImportModal, setShowImportModal] = useState(false);
 
   useEffect(() => {
     loadUser();
@@ -215,6 +217,15 @@ export default function DepartmentTimetablePage() {
           options={availableDepartments.map((d) => ({ value: d.id, label: d.name }))}
         />
         <div className="flex items-center gap-2">
+          {canEditThisDept && orgUnitId && (
+            <button
+              type="button"
+              onClick={() => setShowImportModal(true)}
+              className="rounded-md border border-[var(--border-default)] px-3 py-1.5 text-xs text-[var(--fg-muted)] hover:text-[var(--fg-primary)]"
+            >
+              Import timetable
+            </button>
+          )}
           {view === 'grid' && canEditThisDept && undoStack.length > 0 && (
             <button
               type="button"
@@ -393,6 +404,16 @@ export default function DepartmentTimetablePage() {
           onSubmit={(input) => decomposeMutation.mutate(input)}
           isSubmitting={decomposeMutation.isPending}
           error={decomposeError}
+        />
+      )}
+
+      {showImportModal && (
+        <ImportDepartmentTimetableModal
+          organizationId={organizationId}
+          orgUnitId={orgUnitId}
+          termId={termId}
+          onClose={() => setShowImportModal(false)}
+          onCommitted={invalidate}
         />
       )}
     </AppShell>
