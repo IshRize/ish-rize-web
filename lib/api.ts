@@ -190,6 +190,9 @@ export const schedulingApi = {
   deleteBooking(bookingId: string): Promise<void> {
     return request<void>(`/bookings/${bookingId}`, { method: 'DELETE' });
   },
+  autoRescheduleBooking(bookingId: string): Promise<Booking> {
+    return request<Booking>(`/bookings/${bookingId}/auto-reschedule`, { method: 'POST' });
+  },
 };
 
 export const adminApi = {

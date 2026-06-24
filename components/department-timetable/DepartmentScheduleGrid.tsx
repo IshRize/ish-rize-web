@@ -34,6 +34,7 @@ interface DepartmentScheduleGridProps {
   canEdit?: boolean;
   onMoveBooking?: (bookingId: string, fromTimeSlotId: string, toTimeSlotId: string) => void;
   onDeleteBooking?: (bookingId: string) => void;
+  onAutoReschedule?: (bookingId: string) => void;
 }
 
 interface PeriodRow {
@@ -54,6 +55,7 @@ export function DepartmentScheduleGrid({
   canEdit = false,
   onMoveBooking,
   onDeleteBooking,
+  onAutoReschedule,
 }: DepartmentScheduleGridProps) {
   // A small movement threshold so clicking the "x" remove button on a card
   // doesn't get swallowed as a drag start.
@@ -141,6 +143,7 @@ export function DepartmentScheduleGrid({
                       clashes={clashesByBookingId.get(b.id) ?? []}
                       canEdit={canEdit}
                       onDelete={onDeleteBooking}
+                      onAutoReschedule={onAutoReschedule}
                     />
                   ))
                 )}
@@ -150,7 +153,7 @@ export function DepartmentScheduleGrid({
         }),
       ),
     ],
-    [weekDays, bookingsBySlot, clashesByBookingId, canEdit, onDeleteBooking],
+    [weekDays, bookingsBySlot, clashesByBookingId, canEdit, onDeleteBooking, onAutoReschedule],
   );
 
   const table = useReactTable({ data: periodRows, columns, getCoreRowModel: getCoreRowModel() });

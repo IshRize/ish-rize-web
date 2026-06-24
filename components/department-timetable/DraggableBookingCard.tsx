@@ -23,9 +23,10 @@ interface DraggableBookingCardProps {
   clashes: Clash[];
   canEdit: boolean;
   onDelete?: (bookingId: string) => void;
+  onAutoReschedule?: (bookingId: string) => void;
 }
 
-export function DraggableBookingCard({ booking, clashes, canEdit, onDelete }: DraggableBookingCardProps) {
+export function DraggableBookingCard({ booking, clashes, canEdit, onDelete, onAutoReschedule }: DraggableBookingCardProps) {
   const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({
     id: booking.id,
     disabled: !canEdit,
@@ -55,6 +56,20 @@ export function DraggableBookingCard({ booking, clashes, canEdit, onDelete }: Dr
       </div>
       <div className="flex items-center gap-1">
         <ClashBadge clashes={clashes} />
+        {canEdit && hasClash && (
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              onAutoReschedule?.(booking.id);
+            }}
+            className="text-[var(--accent-primary)] hover:underline"
+            aria-label={`Resolve ${booking.course.code}'s clash automatically`}
+            title="Resolve automatically"
+          >
+            ⟳
+          </button>
+        )}
         {canEdit && (
           <button
             type="button"

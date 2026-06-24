@@ -46,6 +46,7 @@ export default function DepartmentTimetablePage() {
   const [decomposeError, setDecomposeError] = useState<string | null>(null);
   const [view, setView] = useState<'manage' | 'grid'>('manage');
   const [undoStack, setUndoStack] = useState<UndoEntry[]>([]);
+  const [autoRescheduleError, setAutoRescheduleError] = useState<string | null>(null);
 
   useEffect(() => {
     loadUser();
@@ -183,6 +184,15 @@ export default function DepartmentTimetablePage() {
     moveMutation.mutate({ bookingId: last.bookingId, timeSlotId: last.previousTimeSlotId });
   }
 
+  const autoRescheduleMutation = useMutation({
+    mutationFn: (bookingId: string) => schedulingApi.autoRescheduleBooking(bookingId),
+    onSuccess: () => {
+      setAutoRescheduleError(null);
+      invalidate();
+    },
+    onError: (err) => setAutoRescheduleError(err instanceof Error ? err.message : 'Could not auto-resolve this clash'),
+  });
+
   if (authLoading || !isAuthenticated) {
     return (
       <main className="flex min-h-screen items-center justify-center bg-[var(--bg-primary)]">
@@ -246,6 +256,12 @@ export default function DepartmentTimetablePage() {
         </div>
       )}
 
+      {autoRescheduleError && (
+        <div className="mb-3 rounded-lg border border-[var(--fg-clash)]/30 bg-[var(--bg-clash)] px-4 py-2 text-sm text-[var(--fg-clash)]">
+          {autoRescheduleError}
+        </div>
+      )}
+
       {orgUnitId && view === 'grid' && (
         <>
           {scheduleQuery.isLoading ? (
@@ -259,6 +275,7 @@ export default function DepartmentTimetablePage() {
               canEdit={canEditThisDept}
               onMoveBooking={handleMoveBooking}
               onDeleteBooking={(bookingId) => removeMutation.mutate(bookingId)}
+              onAutoReschedule={(bookingId) => autoRescheduleMutation.mutate(bookingId)}
             />
           )}
         </>
@@ -303,6 +320,16 @@ export default function DepartmentTimetablePage() {
                               <li key={b.id} className="flex items-center gap-2">
                                 <span className="text-[var(--fg-primary)]">{b.course.code}</span>
                                 <ClashBadge clashes={clashesByBookingId.get(b.id) ?? []} />
+                                {canEditThisDept && (clashesByBookingId.get(b.id) ?? []).length > 0 && (
+                                  <button
+                                    type="button"
+                                    onClick={() => autoRescheduleMutation.mutate(b.id)}
+                                    disabled={autoRescheduleMutation.isPending}
+                                    className="text-xs text-[var(--accent-primary)] hover:underline disabled:opacity-60"
+                                  >
+                                    Resolve automatically
+                                  </button>
+                                )}
                                 {canEditThisDept ? (
                                   <>
                                     <select
