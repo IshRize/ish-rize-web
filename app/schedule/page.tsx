@@ -47,7 +47,17 @@ export default function SchedulePage() {
   // viewer's grid stays in sync without a manual refresh.
   const { connected } = useScheduleSocket(termId);
 
-  const canEdit = user?.role === 'LECTURER' || user?.role === 'ADMIN';
+  const isAdmin = user?.role === 'ADMIN';
+  const canEdit = user?.role === 'LECTURER' || isAdmin;
+
+  // A lecturer's edit access is scoped to departments they actually
+  // coordinate -- the backend already enforces this (canManageDepartment);
+  // this just stops showing add/delete affordances that would 403.
+  const myAssignmentsQuery = useQuery({
+    queryKey: ['my-coordinator-assignments'],
+    queryFn: () => schedulingApi.listMyCoordinatorAssignments(),
+    enabled: canEdit && !isAdmin,
+  });
 
   const configQuery = useQuery({
     queryKey: ['org-config', organizationId],
@@ -105,6 +115,9 @@ export default function SchedulePage() {
     return allUnits.filter((u) => u.depth === maxDepth);
   }, [allUnits]);
 
+  const canEditSelectedUnit =
+    canEdit && filters.unitId !== ALL && (isAdmin || (myAssignmentsQuery.data ?? []).some((a) => a.orgUnit.id === filters.unitId));
+
   const filteredBookings = useMemo(() => {
     return allBookings.filter((b) => {
       if (filters.unitId !== ALL && b.course.orgUnitId !== filters.unitId) return false;
@@ -141,6 +154,13 @@ export default function SchedulePage() {
         </p>
       )}
 
+      {canEdit && filters.unitId !== ALL && !isAdmin && !canEditSelectedUnit && (
+        <p className="mb-4 text-xs text-[var(--fg-muted)]">
+          You&apos;re viewing this {vocab(config, 'unit').toLowerCase()} read-only — ask an admin to make you its
+          coordinator to add or remove bookings.
+        </p>
+      )}
+
       {scheduleQuery.isLoading ? (
         <p className="text-sm text-[var(--fg-muted)]">Loading schedule…</p>
       ) : scheduleQuery.isError ? (
@@ -151,14 +171,14 @@ export default function SchedulePage() {
           weekDays={config?.weekDays ?? []}
           bookings={filteredBookings}
           clashes={clashesQuery.data}
-          canEdit={canEdit}
+          canEdit={canEditSelectedUnit}
           targetOrgUnitId={filters.unitId !== ALL ? filters.unitId : undefined}
           onAddBooking={(timeSlotId) => setAddTimeSlotId(timeSlotId)}
           onDeleteBooking={(bookingId) => deleteMutation.mutate(bookingId)}
         />
       )}
 
-      {addTimeSlotId && filters.unitId !== ALL && (
+      {addTimeSlotId && filters.unitId !== ALL && canEditSelectedUnit && (
         <AddBookingModal
           organizationId={organizationId}
           orgUnitId={filters.unitId}

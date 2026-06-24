@@ -210,3 +210,21 @@ export interface MasterSlotRow {
 export interface DepartmentTimetableSlot extends MasterSlotRow {
   bookings: DepartmentBooking[];
 }
+
+// "Scheduled hours" -- the sum of Booking durations, used as a proxy for
+// time on campus. Not real swipe-based attendance; that system only tracks
+// students today.
+export interface MyTeachingLoad {
+  totalMinutes: number;
+  bookingCount: number;
+  courses: { courseId: string; code: string; name: string; minutes: number; bookingCount: number }[];
+}
+
+export interface TeachingLoadEntry {
+  hostId: string | null;
+  displayName: string;
+  totalMinutes: number;
+  bookingCount: number;
+  courseCount: number;
+  venueCount: number;
+}

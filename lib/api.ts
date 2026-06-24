@@ -25,11 +25,13 @@ import type {
   MasterSlotIngestionResult,
   MasterSlotRow,
   MyHost,
+  MyTeachingLoad,
   OrgConfig,
   OrgUnit,
   Organization,
   ScheduleResponse,
   SubjectDepartmentMapping,
+  TeachingLoadEntry,
   Term,
   TimeSlot,
   User,
@@ -115,6 +117,12 @@ export const schedulingApi = {
   },
   listMasterSlots(termId: string): Promise<MasterSlotRow[]> {
     return request<MasterSlotRow[]>(`/master-slots?termId=${termId}`);
+  },
+  getMyTeachingLoad(termId: string): Promise<MyTeachingLoad> {
+    return request<MyTeachingLoad>(`/teaching-load/me?termId=${termId}`);
+  },
+  getTeachingLoad(termId: string, orgUnitId: string): Promise<TeachingLoadEntry[]> {
+    return request<TeachingLoadEntry[]>(`/teaching-load?termId=${termId}&orgUnitId=${orgUnitId}`);
   },
   listTerms(organizationId: string): Promise<Term[]> {
     return request<Term[]>(`/terms?organizationId=${organizationId}`);

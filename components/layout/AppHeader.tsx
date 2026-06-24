@@ -49,6 +49,7 @@ const ADMIN_NAV_LINKS = [
 const LECTURER_NAV_LINKS = [
   { href: '/my-timetable', label: 'My Timetable' },
   { href: '/department-timetable', label: 'Department' },
+  { href: '/teaching-load', label: 'Teaching Load' },
 ];
 
 interface AppHeaderProps {
