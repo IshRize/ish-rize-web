@@ -1,8 +1,9 @@
 /**
  * Module: API proxy (catch-all)
  * Layer:  edge (server)
- * Contract: forwards GET/POST/PATCH/DELETE under /api/proxy/* to the backend's
- *           /api/* of the same path, attaching the JWT from the httpOnly cookie.
+ * Contract: forwards GET/POST/PUT/PATCH/DELETE under /api/proxy/* to the
+ *           backend's /api/* of the same path, attaching the JWT from the
+ *           httpOnly cookie.
  * Context: See COPILOT_CONTEXT.md, API_CONTRACT.md
  *
  * Purpose: The browser never holds the JWT (httpOnly cookie) and so cannot set
@@ -51,6 +52,10 @@ export async function GET(req: NextRequest, ctx: RouteContext): Promise<NextResp
   return forward(req, path);
 }
 export async function POST(req: NextRequest, ctx: RouteContext): Promise<NextResponse> {
+  const { path } = await ctx.params;
+  return forward(req, path);
+}
+export async function PUT(req: NextRequest, ctx: RouteContext): Promise<NextResponse> {
   const { path } = await ctx.params;
   return forward(req, path);
 }

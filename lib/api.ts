@@ -71,6 +71,12 @@ export const authApi = {
   me(): Promise<User> {
     return request<User>('/auth/me');
   },
+  changePassword(currentPassword: string, newPassword: string): Promise<void> {
+    return request<void>('/auth/change-password', {
+      method: 'PUT',
+      body: JSON.stringify({ currentPassword, newPassword }),
+    });
+  },
 };
 
 export const schedulingApi = {

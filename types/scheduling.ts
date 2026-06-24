@@ -15,6 +15,7 @@ export interface User {
   firstName: string;
   lastName: string;
   role: 'STUDENT' | 'LECTURER' | 'ADMIN';
+  createdAt: string;
 }
 
 export interface Organization {
