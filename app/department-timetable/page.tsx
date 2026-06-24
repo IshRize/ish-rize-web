@@ -23,11 +23,17 @@ import { useScheduleSelectionStore } from '@/stores/scheduleSelectionStore';
 import { AppHeader } from '@/components/layout/AppHeader';
 import { AppShell } from '@/components/layout/AppShell';
 import { DecomposeMasterSlotModal } from '@/components/department-timetable/DecomposeMasterSlotModal';
+import { DepartmentScheduleGrid } from '@/components/department-timetable/DepartmentScheduleGrid';
 import { ClashBadge } from '@/components/schedule/ClashBadge';
 import { Select } from '@/components/ui/Select';
 import type { Clash, DepartmentTimetableSlot, HostSummary } from '@/types/scheduling';
 
 const UNASSIGNED = '';
+
+interface UndoEntry {
+  bookingId: string;
+  previousTimeSlotId: string;
+}
 
 export default function DepartmentTimetablePage() {
   const router = useRouter();
@@ -38,6 +44,8 @@ export default function DepartmentTimetablePage() {
   const [orgUnitId, setOrgUnitId] = useState('');
   const [decomposeSlot, setDecomposeSlot] = useState<DepartmentTimetableSlot | null>(null);
   const [decomposeError, setDecomposeError] = useState<string | null>(null);
+  const [view, setView] = useState<'manage' | 'grid'>('manage');
+  const [undoStack, setUndoStack] = useState<UndoEntry[]>([]);
 
   useEffect(() => {
     loadUser();
@@ -106,9 +114,24 @@ export default function DepartmentTimetablePage() {
     return map;
   }, [clashesQuery.data]);
 
+  // Grid view's data: each booking placed by its OWN current day/time, not
+  // grouped by origin MasterSlot like the "Manage offerings" table above --
+  // this is what drag-and-drop needs to move a booking off its original slot.
+  const configQuery = useQuery({
+    queryKey: ['org-config', organizationId],
+    queryFn: () => schedulingApi.getOrgConfig(organizationId),
+    enabled: !!organizationId && view === 'grid',
+  });
+  const scheduleQuery = useQuery({
+    queryKey: ['schedule', termId, orgUnitId],
+    queryFn: () => schedulingApi.getSchedule(termId, orgUnitId),
+    enabled: !!termId && !!orgUnitId && view === 'grid',
+  });
+
   function invalidate() {
     queryClient.invalidateQueries({ queryKey: ['department-timetable', termId, orgUnitId] });
     queryClient.invalidateQueries({ queryKey: ['clashes', termId, orgUnitId] });
+    queryClient.invalidateQueries({ queryKey: ['schedule', termId, orgUnitId] });
   }
 
   const decomposeMutation = useMutation({
@@ -142,6 +165,24 @@ export default function DepartmentTimetablePage() {
     onSuccess: invalidate,
   });
 
+  const moveMutation = useMutation({
+    mutationFn: ({ bookingId, timeSlotId }: { bookingId: string; timeSlotId: string }) =>
+      schedulingApi.updateBooking(bookingId, { timeSlotId }),
+    onSuccess: invalidate,
+  });
+
+  function handleMoveBooking(bookingId: string, fromTimeSlotId: string, toTimeSlotId: string) {
+    setUndoStack((stack) => [...stack, { bookingId, previousTimeSlotId: fromTimeSlotId }]);
+    moveMutation.mutate({ bookingId, timeSlotId: toTimeSlotId });
+  }
+
+  function handleUndo() {
+    const last = undoStack[undoStack.length - 1];
+    if (!last) return;
+    setUndoStack((stack) => stack.slice(0, -1));
+    moveMutation.mutate({ bookingId: last.bookingId, timeSlotId: last.previousTimeSlotId });
+  }
+
   if (authLoading || !isAuthenticated) {
     return (
       <main className="flex min-h-screen items-center justify-center bg-[var(--bg-primary)]">
@@ -156,13 +197,40 @@ export default function DepartmentTimetablePage() {
     <AppShell>
       <AppHeader title="Department Timetable" />
 
-      <section className="mb-4 flex flex-wrap items-end gap-3 rounded-lg border border-[var(--border-default)] bg-[var(--bg-secondary)] p-4">
+      <section className="mb-4 flex flex-wrap items-end justify-between gap-3 rounded-lg border border-[var(--border-default)] bg-[var(--bg-secondary)] p-4">
         <Select
           label="Department"
           value={orgUnitId}
           onChange={setOrgUnitId}
           options={availableDepartments.map((d) => ({ value: d.id, label: d.name }))}
         />
+        <div className="flex items-center gap-2">
+          {view === 'grid' && canEditThisDept && undoStack.length > 0 && (
+            <button
+              type="button"
+              onClick={handleUndo}
+              className="rounded-md border border-[var(--border-default)] px-3 py-1.5 text-xs text-[var(--fg-muted)] hover:text-[var(--fg-primary)]"
+            >
+              Undo last move
+            </button>
+          )}
+          <div className="flex rounded-md border border-[var(--border-default)] text-xs">
+            <button
+              type="button"
+              onClick={() => setView('manage')}
+              className={`px-3 py-1.5 ${view === 'manage' ? 'bg-[var(--accent-primary)] text-[var(--fg-on-accent-primary)]' : 'text-[var(--fg-muted)]'}`}
+            >
+              Manage offerings
+            </button>
+            <button
+              type="button"
+              onClick={() => setView('grid')}
+              className={`px-3 py-1.5 ${view === 'grid' ? 'bg-[var(--accent-primary)] text-[var(--fg-on-accent-primary)]' : 'text-[var(--fg-muted)]'}`}
+            >
+              Grid view
+            </button>
+          </div>
+        </div>
       </section>
 
       {!isAdmin && orgUnitId && !canEditThisDept && (
@@ -178,7 +246,25 @@ export default function DepartmentTimetablePage() {
         </div>
       )}
 
-      {orgUnitId && (
+      {orgUnitId && view === 'grid' && (
+        <>
+          {scheduleQuery.isLoading ? (
+            <p className="text-sm text-[var(--fg-muted)]">Loading…</p>
+          ) : (
+            <DepartmentScheduleGrid
+              timeSlots={scheduleQuery.data?.timeSlots ?? []}
+              weekDays={configQuery.data?.weekDays ?? []}
+              bookings={scheduleQuery.data?.bookings ?? []}
+              clashes={clashesQuery.data ?? []}
+              canEdit={canEditThisDept}
+              onMoveBooking={handleMoveBooking}
+              onDeleteBooking={(bookingId) => removeMutation.mutate(bookingId)}
+            />
+          )}
+        </>
+      )}
+
+      {orgUnitId && view === 'manage' && (
         <>
           {timetableQuery.isLoading ? (
             <p className="text-sm text-[var(--fg-muted)]">Loading…</p>
