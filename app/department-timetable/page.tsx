@@ -23,8 +23,9 @@ import { useScheduleSelectionStore } from '@/stores/scheduleSelectionStore';
 import { AppHeader } from '@/components/layout/AppHeader';
 import { AppShell } from '@/components/layout/AppShell';
 import { DecomposeMasterSlotModal } from '@/components/department-timetable/DecomposeMasterSlotModal';
+import { ClashBadge } from '@/components/schedule/ClashBadge';
 import { Select } from '@/components/ui/Select';
-import type { DepartmentTimetableSlot, HostSummary } from '@/types/scheduling';
+import type { Clash, DepartmentTimetableSlot, HostSummary } from '@/types/scheduling';
 
 const UNASSIGNED = '';
 
@@ -82,8 +83,32 @@ export default function DepartmentTimetablePage() {
     enabled: !!termId && !!orgUnitId,
   });
 
+  // Scoped to this department's bookings on the OUTPUT side only -- the
+  // backend still runs clash detection over the whole term so a GROUP clash
+  // against another department's booking (a cohort split across two
+  // departments) is still caught, just filtered down to clashes that touch
+  // something this department owns.
+  const clashesQuery = useQuery({
+    queryKey: ['clashes', termId, orgUnitId],
+    queryFn: () => schedulingApi.getClashes(termId, orgUnitId),
+    enabled: !!termId && !!orgUnitId,
+  });
+
+  const clashesByBookingId = useMemo(() => {
+    const map = new Map<string, Clash[]>();
+    for (const clash of clashesQuery.data ?? []) {
+      for (const bookingId of clash.bookingIds) {
+        const bucket = map.get(bookingId) ?? [];
+        bucket.push(clash);
+        map.set(bookingId, bucket);
+      }
+    }
+    return map;
+  }, [clashesQuery.data]);
+
   function invalidate() {
     queryClient.invalidateQueries({ queryKey: ['department-timetable', termId, orgUnitId] });
+    queryClient.invalidateQueries({ queryKey: ['clashes', termId, orgUnitId] });
   }
 
   const decomposeMutation = useMutation({
@@ -146,6 +171,13 @@ export default function DepartmentTimetablePage() {
         </p>
       )}
 
+      {orgUnitId && (clashesQuery.data ?? []).length > 0 && (
+        <div className="mb-3 rounded-lg border border-[var(--fg-clash)]/30 bg-[var(--bg-clash)] px-4 py-2 text-sm text-[var(--fg-clash)]">
+          {clashesQuery.data!.length} clash{clashesQuery.data!.length === 1 ? '' : 'es'} affecting this department&apos;s offerings --
+          flagged inline below.
+        </div>
+      )}
+
       {orgUnitId && (
         <>
           {timetableQuery.isLoading ? (
@@ -184,6 +216,7 @@ export default function DepartmentTimetablePage() {
                             {slot.bookings.map((b) => (
                               <li key={b.id} className="flex items-center gap-2">
                                 <span className="text-[var(--fg-primary)]">{b.course.code}</span>
+                                <ClashBadge clashes={clashesByBookingId.get(b.id) ?? []} />
                                 {canEditThisDept ? (
                                   <>
                                     <select
