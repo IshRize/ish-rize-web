@@ -154,8 +154,9 @@ export const schedulingApi = {
   listGroups(termId: string): Promise<GroupSummary[]> {
     return request<GroupSummary[]>(`/groups?termId=${termId}`);
   },
-  getClashes(termId: string): Promise<Clash[]> {
-    return request<Clash[]>(`/clashes?termId=${termId}`);
+  getClashes(termId: string, orgUnitId?: string): Promise<Clash[]> {
+    const qs = orgUnitId ? `&orgUnitId=${orgUnitId}` : '';
+    return request<Clash[]>(`/clashes?termId=${termId}${qs}`);
   },
   getFreeVenues(params: { slotId: string; minCapacity?: number; orgUnitId?: string }): Promise<VenueSummary[]> {
     const q = new URLSearchParams({ slotId: params.slotId });
