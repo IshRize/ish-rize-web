@@ -18,6 +18,7 @@ import { useState } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { useAuthStore } from '@/stores/authStore';
+import { useIsCoordinator } from '@/hooks/useIsCoordinator';
 import { ThemeToggle } from '@/components/ui/ThemeToggle';
 import { Icons, type IconProps } from '@/lib/icons';
 
@@ -29,16 +30,21 @@ interface NavLink {
   icon: IconComponent;
 }
 
-// Master Timetable is read-only and visible to absolutely everyone (a
-// lecturer needs to see time/venue before a department coordinator has
-// decomposed their subject into a named offering) -- editing it means
-// re-uploading via /ingestion (ADMIN-only there), not anything inline here.
 const NAV_LINKS: NavLink[] = [
   { href: '/schedule', label: 'Schedule', icon: Icons.schedule },
-  { href: '/master-timetable', label: 'Master Timetable', icon: Icons.masterTimetable },
   { href: '/clashes', label: 'Clashes', icon: Icons.clashes },
   { href: '/free-finder', label: 'Free finder', icon: Icons.freeFinder },
 ];
+
+// The master file is the coarse, pre-decomposition import -- only someone
+// who actually has to decompose a slice of it (a coordinator) or an ADMIN
+// needs to see it; shown separately from NAV_LINKS so it can be filtered by
+// useIsCoordinator() rather than role alone.
+const MASTER_TIMETABLE_LINK: NavLink = {
+  href: '/master-timetable',
+  label: 'Master Timetable',
+  icon: Icons.masterTimetable,
+};
 
 // Visible to any LECTURER (not just ones who currently coordinate a
 // department, or who's currently assigned to teach anything) since both are
@@ -93,11 +99,14 @@ export function Sidebar() {
   const pathname = usePathname();
   const router = useRouter();
   const { user, logout } = useAuthStore();
+  const { isCoordinator } = useIsCoordinator();
 
   const isAdmin = user?.role === 'ADMIN';
   const isLecturerEligible = user?.role === 'LECTURER' || isAdmin;
   const navLinks: NavLink[] = [
-    ...NAV_LINKS,
+    NAV_LINKS[0],
+    ...(isCoordinator ? [MASTER_TIMETABLE_LINK] : []),
+    ...NAV_LINKS.slice(1),
     ...(isLecturerEligible ? LECTURER_NAV_LINKS : []),
     ...(isAdmin ? ADMIN_NAV_LINKS : []),
   ];

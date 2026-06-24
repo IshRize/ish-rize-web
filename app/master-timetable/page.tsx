@@ -5,9 +5,11 @@
  *
  * Purpose: Read-only view of the Master Timetable -- exactly what the most
  *          recent ingestion produced, with no Course/Host resolved into it.
- *          Visible to everyone (a lecturer needs this to know time/venue
- *          before a department coordinator has decomposed their subject into
- *          a named offering); editable only by re-uploading via /ingestion
+ *          Visible only to department coordinators and ADMIN (a coordinator
+ *          needs this to know what to decompose; everyone else gets the
+ *          cleaned-up department/personal timetables instead -- the backend
+ *          enforces this too, this is just so non-coordinators never even
+ *          see a 403). Editable only by re-uploading via /ingestion
  *          (ADMIN-only there), not inline here.
  */
 'use client';
@@ -17,6 +19,7 @@ import { useRouter } from 'next/navigation';
 import { useQuery } from '@tanstack/react-query';
 import { schedulingApi } from '@/lib/api';
 import { useAuthStore } from '@/stores/authStore';
+import { useIsCoordinator } from '@/hooks/useIsCoordinator';
 import { useScheduleSelectionStore } from '@/stores/scheduleSelectionStore';
 import { AppHeader } from '@/components/layout/AppHeader';
 import { AppShell } from '@/components/layout/AppShell';
@@ -28,6 +31,7 @@ const ALL_LEVELS = '';
 export default function MasterTimetablePage() {
   const router = useRouter();
   const { isAuthenticated, isLoading: authLoading, loadUser } = useAuthStore();
+  const { isCoordinator, isLoading: coordinatorLoading } = useIsCoordinator();
   const { organizationId, termId } = useScheduleSelectionStore();
   const [levelFilter, setLevelFilter] = useState(ALL_LEVELS);
 
@@ -39,6 +43,12 @@ export default function MasterTimetablePage() {
   useEffect(() => {
     if (!authLoading && !isAuthenticated) router.replace('/login');
   }, [authLoading, isAuthenticated, router]);
+
+  useEffect(() => {
+    if (!authLoading && isAuthenticated && !coordinatorLoading && !isCoordinator) {
+      router.replace('/schedule');
+    }
+  }, [authLoading, isAuthenticated, coordinatorLoading, isCoordinator, router]);
 
   const configQuery = useQuery({
     queryKey: ['org-config', organizationId],
@@ -55,7 +65,7 @@ export default function MasterTimetablePage() {
   const levels = Array.from(new Set(allSlots.map((s) => s.level).filter((l): l is number => l != null))).sort((a, b) => a - b);
   const filteredSlots = levelFilter === ALL_LEVELS ? allSlots : allSlots.filter((s) => String(s.level ?? '') === levelFilter);
 
-  if (authLoading || !isAuthenticated) {
+  if (authLoading || !isAuthenticated || coordinatorLoading || !isCoordinator) {
     return (
       <main className="flex min-h-screen items-center justify-center bg-[var(--bg-primary)]">
         <p className="text-sm text-[var(--fg-muted)]">Loading…</p>
