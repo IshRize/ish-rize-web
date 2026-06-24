@@ -11,6 +11,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { Icons } from '@/lib/icons';
 
 const STORAGE_KEY = 'ishrize_web_theme';
 type ThemeChoice = 'light' | 'dark';
@@ -48,13 +49,19 @@ export function ThemeToggle() {
     applyTheme(next);
   }
 
+  // Icon depicts the CURRENTLY active theme (sun while light, moon while
+  // dark) -- same convention the mobile app's theme menu item already uses.
+  const Icon = theme === 'dark' ? Icons.moon : Icons.sun;
+
   return (
     <button
       type="button"
       onClick={toggle}
-      className="rounded-md border border-[var(--border-default)] px-3 py-1.5 text-sm text-[var(--fg-muted)] hover:text-[var(--fg-primary)]"
+      aria-label={theme === 'dark' ? 'Switch to light theme' : 'Switch to dark theme'}
+      title={theme === 'dark' ? 'Dark theme' : 'Light theme'}
+      className="rounded-md border border-[var(--border-default)] p-2 text-[var(--fg-muted)] hover:text-[var(--fg-primary)]"
     >
-      {theme === 'dark' ? 'Dark' : 'Light'}
+      <Icon size={18} />
     </button>
   );
 }
