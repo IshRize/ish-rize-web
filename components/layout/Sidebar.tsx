@@ -129,6 +129,12 @@ export function Sidebar() {
           ))}
         </nav>
         <div className="space-y-1 border-t border-[var(--border-default)] px-2 py-2">
+          <NavItem
+            link={{ href: '/profile', label: 'Profile', icon: Icons.profile }}
+            active={pathname === '/profile'}
+            labelClassName={labelClassName}
+            onNavigate={onNavigate}
+          />
           <ThemeToggle variant="row" labelClassName={labelClassName} />
           <button
             type="button"

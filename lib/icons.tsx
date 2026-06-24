@@ -51,6 +51,9 @@ import {
   mdiCalendarCheckOutline,
   mdiShieldLockOutline,
   mdiInformationOutline,
+  mdiSchoolOutline,
+  mdiHumanMaleBoard,
+  mdiChevronRight,
 } from '@mdi/js';
 import { MdiIcon } from '@/components/ui/MdiIcon';
 
@@ -99,4 +102,9 @@ export const Icons = {
   calendarCheck: mdiIcon(mdiCalendarCheckOutline),
   shieldLock: mdiIcon(mdiShieldLockOutline),
   information: mdiIcon(mdiInformationOutline),
+  // Role badges on the profile hero card -- matches the mobile ProfileScreen's
+  // per-role icon (STUDENT/LECTURER use these; ADMIN reuses Icons.admin above).
+  roleStudent: mdiIcon(mdiSchoolOutline),
+  roleLecturer: mdiIcon(mdiHumanMaleBoard),
+  chevronRight: mdiIcon(mdiChevronRight),
 } as const;
