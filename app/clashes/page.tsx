@@ -17,6 +17,7 @@ import { schedulingApi } from '@/lib/api';
 import { useAuthStore } from '@/stores/authStore';
 import { useScheduleSelectionStore } from '@/stores/scheduleSelectionStore';
 import { AppHeader } from '@/components/layout/AppHeader';
+import { AppShell } from '@/components/layout/AppShell';
 import type { Clash } from '@/types/scheduling';
 
 const CLASH_LABEL: Record<Clash['type'], string> = {
@@ -71,7 +72,7 @@ export default function ClashesPage() {
   const clashes = clashesQuery.data ?? [];
 
   return (
-    <main className="min-h-screen bg-[var(--bg-primary)] p-6">
+    <AppShell>
       <AppHeader title="Clash Report" />
 
       {clashesQuery.isLoading ? (
@@ -87,6 +88,6 @@ export default function ClashesPage() {
           ))}
         </div>
       )}
-    </main>
+    </AppShell>
   );
 }

@@ -19,6 +19,7 @@ import { schedulingApi } from '@/lib/api';
 import { useAuthStore } from '@/stores/authStore';
 import { useScheduleSelectionStore } from '@/stores/scheduleSelectionStore';
 import { AppHeader } from '@/components/layout/AppHeader';
+import { AppShell } from '@/components/layout/AppShell';
 import { Select } from '@/components/ui/Select';
 
 function formatHours(minutes: number): string {
@@ -81,7 +82,7 @@ export default function TeachingLoadPage() {
   }
 
   return (
-    <main className="min-h-screen bg-[var(--bg-primary)] p-6">
+    <AppShell>
       <AppHeader title="Teaching Load" />
 
       <section className="mb-4 flex flex-wrap items-end gap-3 rounded-lg border border-[var(--border-default)] bg-[var(--bg-secondary)] p-4">
@@ -139,6 +140,6 @@ export default function TeachingLoadPage() {
           )}
         </>
       )}
-    </main>
+    </AppShell>
   );
 }
