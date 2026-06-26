@@ -24,6 +24,7 @@
 import { useMemo } from 'react';
 import { createColumnHelper, getCoreRowModel, useReactTable, flexRender } from '@tanstack/react-table';
 import { BookingCell } from './BookingCell';
+import { dayLabel } from '@/lib/dayNames';
 import type { Booking, Clash, TimeSlot } from '@/types/scheduling';
 
 interface ScheduleGridProps {
@@ -102,12 +103,12 @@ export function ScheduleGrid({
     () => [
       columnHelper.accessor((row) => row, {
         id: 'period',
-        header: 'Period',
+        header: 'Time',
         cell: (info) => {
           const row = info.getValue();
           return (
-            <div className="whitespace-nowrap text-xs tabular-nums">
-              <div className="font-medium text-[var(--fg-primary)]">{row.label ?? `${row.startTime}–${row.endTime}`}</div>
+            <div className="whitespace-nowrap text-center text-xs tabular-nums font-medium text-[var(--fg-primary)]">
+              {row.startTime}–{row.endTime}
             </div>
           );
         },
@@ -115,7 +116,7 @@ export function ScheduleGrid({
       ...weekDays.map((day) =>
         columnHelper.accessor((row) => row.slotsByDay[day], {
           id: day,
-          header: day,
+          header: dayLabel(day),
           cell: (info) => {
             const slot = info.getValue();
             if (!slot) return <span className="text-[var(--fg-muted)]">—</span>;
@@ -162,7 +163,10 @@ export function ScheduleGrid({
           {table.getRowModel().rows.map((row) => (
             <tr key={row.id} className="even:bg-[var(--bg-alternate)]/60 hover:bg-[var(--bg-alternate)]">
               {row.getVisibleCells().map((cell) => (
-                <td key={cell.id} className="border-b border-[var(--border-default)] px-3 py-2 align-top">
+                <td
+                  key={cell.id}
+                  className={`border-b border-[var(--border-default)] px-3 py-2 ${cell.column.id === 'period' ? 'align-middle' : 'align-top'}`}
+                >
                   {flexRender(cell.column.columnDef.cell, cell.getContext())}
                 </td>
               ))}

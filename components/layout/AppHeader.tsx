@@ -25,9 +25,11 @@ interface AppHeaderProps {
   title: string;
   /** Rendered next to the title — e.g. the schedule page's live-sync dot. */
   endSlot?: React.ReactNode;
+  /** Extra filter controls rendered in the same row as Organization/Term, after Term — e.g. the master timetable's Level filter. */
+  filtersSlot?: React.ReactNode;
 }
 
-export function AppHeader({ title, endSlot }: AppHeaderProps) {
+export function AppHeader({ title, endSlot, filtersSlot }: AppHeaderProps) {
   const { user } = useAuthStore();
   const { organizationId, termId, setOrganizationId, setTermId } = useScheduleSelectionStore();
 
@@ -85,6 +87,7 @@ export function AppHeader({ title, endSlot }: AppHeaderProps) {
           onChange={setTermId}
           options={(termsQuery.data ?? []).map((t) => ({ value: t.id, label: t.name }))}
         />
+        {filtersSlot}
       </div>
     </header>
   );

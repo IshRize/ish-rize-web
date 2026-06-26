@@ -27,6 +27,7 @@ import { DepartmentScheduleGrid } from '@/components/department-timetable/Depart
 import { ImportDepartmentTimetableModal } from '@/components/department-timetable/ImportDepartmentTimetableModal';
 import { ClashBadge } from '@/components/schedule/ClashBadge';
 import { Select } from '@/components/ui/Select';
+import { dayLabel } from '@/lib/dayNames';
 import type { Clash, DepartmentTimetableSlot, HostSummary } from '@/types/scheduling';
 
 const UNASSIGNED = '';
@@ -317,9 +318,9 @@ export default function DepartmentTimetablePage() {
                     <tr key={slot.id} className="even:bg-[var(--bg-alternate)]/60 hover:bg-[var(--bg-alternate)]">
                       <td className="border-b border-[var(--border-default)] px-3 py-2 align-top text-[var(--fg-primary)]">{slot.subjectCode}</td>
                       <td className="border-b border-[var(--border-default)] px-3 py-2 align-top text-[var(--fg-muted)]">{slot.level ?? '—'}</td>
-                      <td className="border-b border-[var(--border-default)] px-3 py-2 align-top text-[var(--fg-muted)]">{slot.dayOfWeek}</td>
+                      <td className="border-b border-[var(--border-default)] px-3 py-2 align-top text-[var(--fg-muted)]">{dayLabel(slot.dayOfWeek)}</td>
                       <td className="border-b border-[var(--border-default)] px-3 py-2 align-top text-[var(--fg-muted)]">
-                        {slot.timeSlot.label ?? `${slot.timeSlot.startTime}–${slot.timeSlot.endTime}`}
+                        {slot.timeSlot.startTime}–{slot.timeSlot.endTime}
                       </td>
                       <td className="border-b border-[var(--border-default)] px-3 py-2 align-top text-[var(--fg-muted)]">{slot.venue?.name ?? '—'}</td>
                       <td className="border-b border-[var(--border-default)] px-3 py-2 align-top">

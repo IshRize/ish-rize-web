@@ -7,18 +7,30 @@
  *          time-of-day periods, columns are the org's configured weekdays
  *          (same axis model as ScheduleGrid). Unlike ScheduleGrid, a cell here
  *          routinely holds MANY parallel subject offerings (the real export
- *          has dozens running at once per period), so each cell renders a
- *          small scrollable list rather than assuming one occupant.
+ *          has dozens running at once per period), so each day is a column
+ *          GROUP with Subject/Level/Venue as separate sub-columns -- one
+ *          cramped text line per entry doesn't line up across rows once
+ *          codes/venues vary in length, but three aligned columns do, the
+ *          same way the real spreadsheet exports lay it out.
+ *
+ *          Level is only its own sub-column when more than one level can
+ *          appear (showLevelColumn) -- once the page's own Level filter has
+ *          narrowed everything to one level, repeating it per row is just
+ *          noise.
  */
 'use client';
 
 import { useMemo } from 'react';
 import { createColumnHelper, getCoreRowModel, useReactTable, flexRender } from '@tanstack/react-table';
+import { dayLabel } from '@/lib/dayNames';
 import type { MasterSlotRow } from '@/types/scheduling';
 
 interface MasterTimetableGridProps {
   slots: MasterSlotRow[];
   weekDays: string[];
+  showLevelColumn: boolean;
+  showGridLines: boolean;
+  scrollableCells: boolean;
 }
 
 interface PeriodRow {
@@ -31,7 +43,32 @@ interface PeriodRow {
 
 const columnHelper = createColumnHelper<PeriodRow>();
 
-export function MasterTimetableGrid({ slots, weekDays }: MasterTimetableGridProps) {
+type Field = 'subject' | 'level' | 'venue';
+
+function fieldValue(slot: MasterSlotRow, field: Field): string {
+  if (field === 'subject') return slot.subjectCode;
+  if (field === 'level') return slot.level != null ? `L${slot.level}` : '—';
+  return slot.venue?.name ?? '—';
+}
+
+function EntryColumn({ entries, field, scrollable }: { entries: MasterSlotRow[]; field: Field; scrollable: boolean }) {
+  if (entries.length === 0) return <span className="text-[var(--fg-muted)]">—</span>;
+  return (
+    <ul className={`space-y-1 ${scrollable ? 'max-h-28 overflow-y-auto' : ''}`}>
+      {entries.map((e) => (
+        <li
+          key={e.id}
+          className={`truncate text-xs leading-5 ${field === 'subject' ? 'font-medium text-[var(--fg-primary)]' : 'text-[var(--fg-muted)]'}`}
+          title={fieldValue(e, field)}
+        >
+          {fieldValue(e, field)}
+        </li>
+      ))}
+    </ul>
+  );
+}
+
+export function MasterTimetableGrid({ slots, weekDays, showLevelColumn, showGridLines, scrollableCells }: MasterTimetableGridProps) {
   const periodRows = useMemo<PeriodRow[]>(() => {
     const map = new Map<string, PeriodRow>();
     for (const slot of slots) {
@@ -48,43 +85,39 @@ export function MasterTimetableGrid({ slots, weekDays }: MasterTimetableGridProp
     return Array.from(map.values()).sort((a, b) => a.startTime.localeCompare(b.startTime));
   }, [slots]);
 
+  const fields: Field[] = showLevelColumn ? ['subject', 'level', 'venue'] : ['subject', 'venue'];
+  const fieldHeader: Record<Field, string> = { subject: 'Subject', level: 'Level', venue: 'Venue' };
+
   const columns = useMemo(
     () => [
       columnHelper.accessor((row) => row, {
         id: 'period',
-        header: 'Period',
+        header: 'Time',
         cell: (info) => {
           const row = info.getValue();
           return (
-            <div className="whitespace-nowrap text-xs tabular-nums font-medium text-[var(--fg-primary)]">
-              {row.label ?? `${row.startTime}–${row.endTime}`}
+            <div className="whitespace-nowrap text-center text-xs tabular-nums font-medium text-[var(--fg-primary)]">
+              {row.startTime}–{row.endTime}
             </div>
           );
         },
       }),
       ...weekDays.map((day) =>
-        columnHelper.accessor((row) => row.slotsByDay[day] ?? [], {
+        columnHelper.group({
           id: day,
-          header: day,
-          cell: (info) => {
-            const entries = info.getValue();
-            if (entries.length === 0) return <span className="text-[var(--fg-muted)]">—</span>;
-            return (
-              <ul className="max-h-28 space-y-1 overflow-y-auto">
-                {entries.map((e) => (
-                  <li key={e.id} className="text-xs">
-                    <span className="font-medium text-[var(--fg-primary)]">{e.subjectCode}</span>
-                    {e.level != null && <span className="text-[var(--fg-muted)]"> · L{e.level}</span>}
-                    {e.venue && <span className="text-[var(--fg-muted)]"> · {e.venue.name}</span>}
-                  </li>
-                ))}
-              </ul>
-            );
-          },
+          header: dayLabel(day),
+          columns: fields.map((field) =>
+            columnHelper.accessor((row) => row.slotsByDay[day] ?? [], {
+              id: `${day}-${field}`,
+              header: fieldHeader[field],
+              cell: (info) => <EntryColumn entries={info.getValue()} field={field} scrollable={scrollableCells} />,
+            }),
+          ),
         }),
       ),
     ],
-    [weekDays],
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [weekDays, showLevelColumn, scrollableCells],
   );
 
   const table = useReactTable({ data: periodRows, columns, getCoreRowModel: getCoreRowModel() });
@@ -92,6 +125,8 @@ export function MasterTimetableGrid({ slots, weekDays }: MasterTimetableGridProp
   if (weekDays.length === 0) {
     return <p className="text-sm text-[var(--fg-muted)]">No scheduling days configured.</p>;
   }
+
+  const cellBorder = showGridLines ? 'border border-[var(--border-default)]' : 'border-b border-[var(--border-default)]';
 
   return (
     <div className="overflow-x-auto rounded-lg border border-[var(--border-default)]">
@@ -102,9 +137,10 @@ export function MasterTimetableGrid({ slots, weekDays }: MasterTimetableGridProp
               {headerGroup.headers.map((header) => (
                 <th
                   key={header.id}
-                  className="border-b border-[var(--border-default)] px-3 py-2 text-left text-xs font-semibold text-[var(--fg-on-accent-primary)]"
+                  colSpan={header.colSpan}
+                  className={`${cellBorder} px-3 py-2 text-left text-xs font-semibold text-[var(--fg-on-accent-primary)]`}
                 >
-                  {flexRender(header.column.columnDef.header, header.getContext())}
+                  {header.isPlaceholder ? null : flexRender(header.column.columnDef.header, header.getContext())}
                 </th>
               ))}
             </tr>
@@ -114,7 +150,10 @@ export function MasterTimetableGrid({ slots, weekDays }: MasterTimetableGridProp
           {table.getRowModel().rows.map((row) => (
             <tr key={row.id} className="even:bg-[var(--bg-alternate)]/60 hover:bg-[var(--bg-alternate)]">
               {row.getVisibleCells().map((cell) => (
-                <td key={cell.id} className="border-b border-[var(--border-default)] px-3 py-2 align-top">
+                <td
+                  key={cell.id}
+                  className={`${cellBorder} px-3 py-2 ${cell.column.id === 'period' ? 'align-middle' : 'align-top'}`}
+                >
                   {flexRender(cell.column.columnDef.cell, cell.getContext())}
                 </td>
               ))}

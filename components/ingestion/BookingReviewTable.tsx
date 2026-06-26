@@ -12,6 +12,7 @@
  */
 'use client';
 
+import { dayLabel } from '@/lib/dayNames';
 import type { DraftBooking } from '@/types/scheduling';
 
 interface BookingReviewTableProps {
@@ -48,7 +49,7 @@ export function BookingReviewTable({ drafts }: BookingReviewTableProps) {
                   {d.rowIndex}
                 </td>
                 <td className="border-b border-[var(--border-default)] px-3 py-2 align-top text-[var(--fg-primary)]">{d.raw.code}</td>
-                <td className="border-b border-[var(--border-default)] px-3 py-2 align-top text-[var(--fg-muted)]">{d.raw.day}</td>
+                <td className="border-b border-[var(--border-default)] px-3 py-2 align-top text-[var(--fg-muted)]">{dayLabel(d.raw.day)}</td>
                 <td className="border-b border-[var(--border-default)] px-3 py-2 align-top text-[var(--fg-muted)]">{d.raw.slot}</td>
                 <td className="border-b border-[var(--border-default)] px-3 py-2 align-top text-[var(--fg-muted)]">{d.raw.venue ?? '—'}</td>
                 <td className="border-b border-[var(--border-default)] px-3 py-2 align-top text-[var(--fg-muted)]">{d.raw.host ?? '—'}</td>
