@@ -29,7 +29,7 @@ export function BookingReviewTable({ drafts }: BookingReviewTableProps) {
       <table className="w-full border-collapse text-sm">
         <thead className="bg-[var(--accent-secondary)]">
           <tr>
-            {['Row', 'Course', 'Day', 'Time', 'Venue', 'Host', 'Level', 'Sheet', 'Warnings'].map((h) => (
+            {['Row', 'Course', 'Day', 'Time', 'Venue', 'Host', 'Group', 'Level', 'Sheet', 'Warnings'].map((h) => (
               <th key={h} className="border-b border-[var(--border-default)] px-3 py-2 text-left text-xs font-semibold text-[var(--fg-on-accent-primary)]">
                 {h}
               </th>
@@ -53,6 +53,7 @@ export function BookingReviewTable({ drafts }: BookingReviewTableProps) {
                 <td className="border-b border-[var(--border-default)] px-3 py-2 align-top text-[var(--fg-muted)]">{d.raw.slot}</td>
                 <td className="border-b border-[var(--border-default)] px-3 py-2 align-top text-[var(--fg-muted)]">{d.raw.venue ?? '—'}</td>
                 <td className="border-b border-[var(--border-default)] px-3 py-2 align-top text-[var(--fg-muted)]">{d.raw.host ?? '—'}</td>
+                <td className="border-b border-[var(--border-default)] px-3 py-2 align-top text-[var(--fg-muted)]">{d.groupTag ?? '—'}</td>
                 <td className="border-b border-[var(--border-default)] px-3 py-2 align-top text-[var(--fg-muted)]">{d.level ?? d.raw.level ?? '—'}</td>
                 <td className="border-b border-[var(--border-default)] px-3 py-2 align-top text-xs text-[var(--fg-muted)]">{d.sheet ?? '—'}</td>
                 <td className="border-b border-[var(--border-default)] px-3 py-2 align-top text-xs">

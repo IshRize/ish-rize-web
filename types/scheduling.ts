@@ -187,6 +187,8 @@ export interface DraftBooking {
   venueId?: string;
   hostId?: string;
   level?: number;
+  /** A group/section tag embedded in the code cell ("MATH 122 (G9)") -- not a lecturer, so it never feeds host resolution. */
+  groupTag?: string;
   warnings: string[];
 }
 
