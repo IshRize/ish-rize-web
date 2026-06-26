@@ -21,12 +21,13 @@ import { useScheduleSelectionStore } from '@/stores/scheduleSelectionStore';
 import { AppHeader } from '@/components/layout/AppHeader';
 import { AppShell } from '@/components/layout/AppShell';
 import { Select } from '@/components/ui/Select';
+import { dayLabel } from '@/lib/dayNames';
 import type { TimeSlot } from '@/types/scheduling';
 
 const ALL = 'ALL';
 
 function slotLabel(slot: TimeSlot): string {
-  return `${slot.dayOfWeek} · ${slot.label ?? `${slot.startTime}–${slot.endTime}`}`;
+  return `${dayLabel(slot.dayOfWeek)} · ${slot.startTime}–${slot.endTime}`;
 }
 
 function TimeSlotList({ slots }: { slots: TimeSlot[] | undefined }) {

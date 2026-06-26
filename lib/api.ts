@@ -150,6 +150,9 @@ export const schedulingApi = {
   listActivities(orgUnitId: string): Promise<ActivitySummary[]> {
     return request<ActivitySummary[]>(`/activities?orgUnitId=${orgUnitId}`);
   },
+  createCourse(input: { code: string; name: string; orgUnitId: string; level?: number }): Promise<ActivitySummary> {
+    return request<ActivitySummary>('/courses', { method: 'POST', body: JSON.stringify(input) });
+  },
   getSchedule(termId: string, orgUnitId?: string): Promise<ScheduleResponse> {
     const q = orgUnitId ? `&orgUnitId=${orgUnitId}` : '';
     return request<ScheduleResponse>(`/schedule?termId=${termId}${q}`);

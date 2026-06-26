@@ -12,6 +12,7 @@
  */
 'use client';
 
+import { dayLabel } from '@/lib/dayNames';
 import type { DraftMasterSlot, VenueSummary } from '@/types/scheduling';
 
 interface MasterSlotReviewTableProps {
@@ -54,7 +55,7 @@ export function MasterSlotReviewTable({ drafts, venues }: MasterSlotReviewTableP
                 </td>
                 <td className="border-b border-[var(--border-default)] px-3 py-2 align-top text-[var(--fg-primary)]">{d.raw.subjectCode}</td>
                 <td className="border-b border-[var(--border-default)] px-3 py-2 align-top text-[var(--fg-muted)]">{d.level ?? '—'}</td>
-                <td className="border-b border-[var(--border-default)] px-3 py-2 align-top text-[var(--fg-muted)]">{d.dayOfWeek ?? d.raw.day}</td>
+                <td className="border-b border-[var(--border-default)] px-3 py-2 align-top text-[var(--fg-muted)]">{dayLabel(d.dayOfWeek ?? d.raw.day)}</td>
                 <td className="border-b border-[var(--border-default)] px-3 py-2 align-top text-[var(--fg-muted)]">{d.raw.slot}</td>
                 <td className="border-b border-[var(--border-default)] px-3 py-2 align-top text-[var(--fg-muted)]">{venueName(d.venueId, venues)}</td>
                 <td className="border-b border-[var(--border-default)] px-3 py-2 align-top text-xs text-[var(--fg-muted)]">{d.sheet ?? '—'}</td>

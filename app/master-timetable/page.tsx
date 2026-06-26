@@ -34,6 +34,8 @@ export default function MasterTimetablePage() {
   const { isCoordinator, isLoading: coordinatorLoading } = useIsCoordinator();
   const { organizationId, termId } = useScheduleSelectionStore();
   const [levelFilter, setLevelFilter] = useState(ALL_LEVELS);
+  const [showGridLines, setShowGridLines] = useState(true);
+  const [scrollableCells, setScrollableCells] = useState(false);
 
   useEffect(() => {
     loadUser();
@@ -75,23 +77,42 @@ export default function MasterTimetablePage() {
 
   return (
     <AppShell>
-      <AppHeader title="Master Timetable" />
-
-      <section className="mb-4 flex flex-wrap gap-3 rounded-lg border border-[var(--border-default)] bg-[var(--bg-secondary)] p-3">
-        <Select
-          label="Level"
-          value={levelFilter}
-          onChange={setLevelFilter}
-          options={[{ value: ALL_LEVELS, label: 'All levels' }, ...levels.map((l) => ({ value: String(l), label: String(l) }))]}
-        />
-      </section>
+      <AppHeader
+        title="Master Timetable"
+        filtersSlot={
+          <Select
+            label="Level"
+            value={levelFilter}
+            onChange={setLevelFilter}
+            options={[{ value: ALL_LEVELS, label: 'All levels' }, ...levels.map((l) => ({ value: String(l), label: String(l) }))]}
+          />
+        }
+      />
 
       {slotsQuery.isLoading ? (
         <p className="text-sm text-[var(--fg-muted)]">Loading…</p>
       ) : allSlots.length === 0 ? (
         <p className="text-sm text-[var(--fg-muted)]">No master timetable has been uploaded for this term yet.</p>
       ) : (
-        <MasterTimetableGrid slots={filteredSlots} weekDays={configQuery.data?.weekDays ?? []} />
+        <>
+          <div className="mb-3 flex flex-wrap items-center gap-4 text-sm text-[var(--fg-muted)]">
+            <label className="flex items-center gap-2">
+              <input type="checkbox" checked={showGridLines} onChange={(e) => setShowGridLines(e.target.checked)} />
+              Show grid lines
+            </label>
+            <label className="flex items-center gap-2">
+              <input type="checkbox" checked={scrollableCells} onChange={(e) => setScrollableCells(e.target.checked)} />
+              Compact (scrollable) cells
+            </label>
+          </div>
+          <MasterTimetableGrid
+            slots={filteredSlots}
+            weekDays={configQuery.data?.weekDays ?? []}
+            showLevelColumn={levelFilter === ALL_LEVELS}
+            showGridLines={showGridLines}
+            scrollableCells={scrollableCells}
+          />
+        </>
       )}
     </AppShell>
   );
