@@ -31,6 +31,7 @@ import { dayLabel } from '@/lib/dayNames';
 import type { Clash, DepartmentTimetableSlot, HostSummary } from '@/types/scheduling';
 
 const UNASSIGNED = '';
+const ALL_LEVELS = '';
 
 interface UndoEntry {
   bookingId: string;
@@ -44,6 +45,7 @@ export default function DepartmentTimetablePage() {
   const queryClient = useQueryClient();
 
   const [orgUnitId, setOrgUnitId] = useState('');
+  const [levelFilter, setLevelFilter] = useState(ALL_LEVELS);
   const [decomposeSlot, setDecomposeSlot] = useState<DepartmentTimetableSlot | null>(null);
   const [decomposeError, setDecomposeError] = useState<string | null>(null);
   const [view, setView] = useState<'manage' | 'grid'>('manage');
@@ -132,6 +134,19 @@ export default function DepartmentTimetablePage() {
     enabled: !!termId && !!orgUnitId && view === 'grid',
   });
 
+  // Applies to both views: once filtered to one level, repeating it on every
+  // row/card is just noise -- so the Level column/field is hidden too,
+  // mirroring the Master Timetable page's exact pattern.
+  const levels = Array.from(
+    new Set((timetableQuery.data ?? []).map((s) => s.level).filter((l): l is number => l != null)),
+  ).sort((a, b) => a - b);
+  const filteredSlots =
+    levelFilter === ALL_LEVELS ? timetableQuery.data ?? [] : (timetableQuery.data ?? []).filter((s) => String(s.level ?? '') === levelFilter);
+  const filteredBookings =
+    levelFilter === ALL_LEVELS
+      ? scheduleQuery.data?.bookings ?? []
+      : (scheduleQuery.data?.bookings ?? []).filter((b) => String(b.level ?? '') === levelFilter);
+
   function invalidate() {
     queryClient.invalidateQueries({ queryKey: ['department-timetable', termId, orgUnitId] });
     queryClient.invalidateQueries({ queryKey: ['clashes', termId, orgUnitId] });
@@ -208,7 +223,17 @@ export default function DepartmentTimetablePage() {
 
   return (
     <AppShell>
-      <AppHeader title="Department Timetable" />
+      <AppHeader
+        title="Department Timetable"
+        filtersSlot={
+          <Select
+            label="Level"
+            value={levelFilter}
+            onChange={setLevelFilter}
+            options={[{ value: ALL_LEVELS, label: 'All levels' }, ...levels.map((l) => ({ value: String(l), label: String(l) }))]}
+          />
+        }
+      />
 
       <section className="mb-4 flex flex-wrap items-end justify-between gap-3 rounded-lg border border-[var(--border-default)] bg-[var(--bg-secondary)] p-4">
         <Select
@@ -282,7 +307,7 @@ export default function DepartmentTimetablePage() {
             <DepartmentScheduleGrid
               timeSlots={scheduleQuery.data?.timeSlots ?? []}
               weekDays={configQuery.data?.weekDays ?? []}
-              bookings={scheduleQuery.data?.bookings ?? []}
+              bookings={filteredBookings}
               clashes={clashesQuery.data ?? []}
               canEdit={canEditThisDept}
               onMoveBooking={handleMoveBooking}
@@ -301,12 +326,22 @@ export default function DepartmentTimetablePage() {
             <p className="text-sm text-[var(--fg-muted)]">
               No master timetable subjects are mapped to this department yet -- an admin needs to map a subject code first.
             </p>
+          ) : filteredSlots.length === 0 ? (
+            <p className="text-sm text-[var(--fg-muted)]">No subjects at level {levelFilter} for this department.</p>
           ) : (
             <div className="overflow-x-auto rounded-lg border border-[var(--border-default)]">
               <table className="w-full border-collapse text-sm">
                 <thead className="bg-[var(--accent-secondary)]">
                   <tr>
-                    {['Subject', 'Level', 'Day', 'Time', 'Venue', 'Offerings', 'Actions'].map((h) => (
+                    {[
+                      'Subject',
+                      ...(levelFilter === ALL_LEVELS ? ['Level'] : []),
+                      'Day',
+                      'Time',
+                      'Venue',
+                      'Offerings',
+                      'Actions',
+                    ].map((h) => (
                       <th key={h} className="border-b border-[var(--border-default)] px-3 py-2 text-left text-xs font-semibold text-[var(--fg-on-accent-primary)]">
                         {h}
                       </th>
@@ -314,10 +349,12 @@ export default function DepartmentTimetablePage() {
                   </tr>
                 </thead>
                 <tbody>
-                  {(timetableQuery.data ?? []).map((slot) => (
+                  {filteredSlots.map((slot) => (
                     <tr key={slot.id} className="even:bg-[var(--bg-alternate)]/60 hover:bg-[var(--bg-alternate)]">
                       <td className="border-b border-[var(--border-default)] px-3 py-2 align-top text-[var(--fg-primary)]">{slot.subjectCode}</td>
-                      <td className="border-b border-[var(--border-default)] px-3 py-2 align-top text-[var(--fg-muted)]">{slot.level ?? '—'}</td>
+                      {levelFilter === ALL_LEVELS && (
+                        <td className="border-b border-[var(--border-default)] px-3 py-2 align-top text-[var(--fg-muted)]">{slot.level ?? '—'}</td>
+                      )}
                       <td className="border-b border-[var(--border-default)] px-3 py-2 align-top text-[var(--fg-muted)]">{dayLabel(slot.dayOfWeek)}</td>
                       <td className="border-b border-[var(--border-default)] px-3 py-2 align-top text-[var(--fg-muted)]">
                         {slot.timeSlot.startTime}–{slot.timeSlot.endTime}
