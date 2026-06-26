@@ -32,8 +32,10 @@ export default function MasterTimetablePage() {
   const router = useRouter();
   const { isAuthenticated, isLoading: authLoading, loadUser } = useAuthStore();
   const { isCoordinator, isLoading: coordinatorLoading } = useIsCoordinator();
-  const { organizationId, termId } = useScheduleSelectionStore();
-  const [levelFilter, setLevelFilter] = useState(ALL_LEVELS);
+  // Shared across pages (not page-local useState) so switching to Department
+  // Timetable and back doesn't reset the filter -- same store organizationId/
+  // termId already use for the same reason.
+  const { organizationId, termId, levelFilter, setLevelFilter } = useScheduleSelectionStore();
   const [showGridLines, setShowGridLines] = useState(true);
   const [scrollableCells, setScrollableCells] = useState(false);
 

@@ -25,11 +25,15 @@ interface AppHeaderProps {
   title: string;
   /** Rendered next to the title — e.g. the schedule page's live-sync dot. */
   endSlot?: React.ReactNode;
+  /** Hide the Organization selector -- e.g. the department-timetable page is already scoped to one organization, so repeating that selector is redundant; default true. */
+  showOrganization?: boolean;
+  /** Rendered in the filter row BEFORE Term -- e.g. the department-timetable page's Department select, so the row reads Department, Term, Level. */
+  beforeTermSlot?: React.ReactNode;
   /** Extra filter controls rendered in the same row as Organization/Term, after Term — e.g. the master timetable's Level filter. */
   filtersSlot?: React.ReactNode;
 }
 
-export function AppHeader({ title, endSlot, filtersSlot }: AppHeaderProps) {
+export function AppHeader({ title, endSlot, showOrganization = true, beforeTermSlot, filtersSlot }: AppHeaderProps) {
   const { user } = useAuthStore();
   const { organizationId, termId, setOrganizationId, setTermId } = useScheduleSelectionStore();
 
@@ -75,12 +79,15 @@ export function AppHeader({ title, endSlot, filtersSlot }: AppHeaderProps) {
       </div>
 
       <div className="flex flex-wrap gap-3">
-        <Select
-          label="Organization"
-          value={organizationId}
-          onChange={setOrganizationId}
-          options={(orgsQuery.data ?? []).map((o) => ({ value: o.id, label: o.name }))}
-        />
+        {showOrganization && (
+          <Select
+            label="Organization"
+            value={organizationId}
+            onChange={setOrganizationId}
+            options={(orgsQuery.data ?? []).map((o) => ({ value: o.id, label: o.name }))}
+          />
+        )}
+        {beforeTermSlot}
         <Select
           label="Term"
           value={termId}

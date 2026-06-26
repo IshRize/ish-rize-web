@@ -41,11 +41,19 @@ interface UndoEntry {
 export default function DepartmentTimetablePage() {
   const router = useRouter();
   const { user, isAuthenticated, isLoading: authLoading, loadUser } = useAuthStore();
-  const { organizationId, termId } = useScheduleSelectionStore();
+  // Shared across pages (not page-local useState) so switching away and back
+  // (e.g. to Master Timetable, which shares the same levelFilter) doesn't
+  // reset either selection.
+  const {
+    organizationId,
+    termId,
+    levelFilter,
+    setLevelFilter,
+    departmentOrgUnitId: orgUnitId,
+    setDepartmentOrgUnitId: setOrgUnitId,
+  } = useScheduleSelectionStore();
   const queryClient = useQueryClient();
 
-  const [orgUnitId, setOrgUnitId] = useState('');
-  const [levelFilter, setLevelFilter] = useState(ALL_LEVELS);
   const [decomposeSlot, setDecomposeSlot] = useState<DepartmentTimetableSlot | null>(null);
   const [decomposeError, setDecomposeError] = useState<string | null>(null);
   const [view, setView] = useState<'manage' | 'grid'>('manage');
@@ -83,7 +91,7 @@ export default function DepartmentTimetablePage() {
 
   useEffect(() => {
     if (!orgUnitId && availableDepartments.length > 0) setOrgUnitId(availableDepartments[0].id);
-  }, [orgUnitId, availableDepartments]);
+  }, [orgUnitId, availableDepartments, setOrgUnitId]);
 
   const hostsQuery = useQuery({
     queryKey: ['hosts', orgUnitId],
@@ -225,6 +233,15 @@ export default function DepartmentTimetablePage() {
     <AppShell>
       <AppHeader
         title="Department Timetable"
+        showOrganization={false}
+        beforeTermSlot={
+          <Select
+            label="Department"
+            value={orgUnitId}
+            onChange={setOrgUnitId}
+            options={availableDepartments.map((d) => ({ value: d.id, label: d.name }))}
+          />
+        }
         filtersSlot={
           <Select
             label="Level"
@@ -235,13 +252,7 @@ export default function DepartmentTimetablePage() {
         }
       />
 
-      <section className="mb-4 flex flex-wrap items-end justify-between gap-3 rounded-lg border border-[var(--border-default)] bg-[var(--bg-secondary)] p-4">
-        <Select
-          label="Department"
-          value={orgUnitId}
-          onChange={setOrgUnitId}
-          options={availableDepartments.map((d) => ({ value: d.id, label: d.name }))}
-        />
+      <section className="mb-4 flex flex-wrap items-center justify-end gap-2 rounded-lg border border-[var(--border-default)] bg-[var(--bg-secondary)] p-4">
         <div className="flex items-center gap-2">
           {canEditThisDept && orgUnitId && (
             <button
