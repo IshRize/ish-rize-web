@@ -29,7 +29,7 @@ dev       Integration. Protected. All feature/fix work targets dev via PR.
 
 | Prefix | Use | Example |
 |--------|-----|---------|
-| `feat/` | New feature | `feat/timetable-grid-read` |
+| `feat/` | New feature | `feat/schedule-grid-read` |
 | `fix/` | Bug fix | `fix/clash-online-venue` |
 | `chore/` | Tooling, deps, config | `chore/add-ci-workflows` |
 | `refactor/` | Restructure, no behaviour change | `refactor/availability-engine` |
@@ -49,11 +49,11 @@ Closes #N
 ```
 
 - Types: `feat`, `fix`, `chore`, `refactor`, `docs`, `test`, `style`
-- `scope` is optional but encouraged (e.g. `timetable`, `clash`, `ingestion`, `config`).
+- `scope` is optional but encouraged (e.g. `schedule`, `clash`, `ingestion`, `config`).
 - Every commit on an issue-backed branch ends with `Closes #N`.
 - **Never** add Claude/AI or any `Co-Authored-By` trailer.
 
-**Examples (IshRize timetable domain):**
+**Examples (IshRize scheduling domain):**
 
 ```
 feat(clash): detect cohort clashes at the group level
@@ -66,10 +66,10 @@ Closes #61
 ```
 
 ```
-feat(timetable): render read-only master grid from seeded UG data
+feat(schedule): render read-only master grid from seeded UG data
 
-Rows are time slots by day, columns are departments, cells show lecturer
-initials + course code + room. Filtering is client-side over fetched data.
+Rows are time slots by day, columns are org units, cells show host initials
++ activity code + room. Filtering is client-side over fetched data.
 
 Closes #62
 ```
@@ -152,7 +152,7 @@ and PR.** A phase that spans both repos gets **one issue/branch/PR per repo**, c
 Never combine unrelated concerns in one PR.
 
 ```
-feat/timetable-grid-read   (ish-rize-web)      → issue #62, PR
+feat/schedule-grid-read    (ish-rize-web)      → issue #62, PR
 feat/booking-core          (ish-rize-backend)  → issue #60, PR
 ```
 

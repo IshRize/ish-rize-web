@@ -33,7 +33,9 @@ The intelligence (clash detection, availability, ingestion, configuration) lives
 - Restate its contract (inputs → outputs) in the test file first.
 - Keep it pure: no HTTP, no Prisma, no `Date.now()` baked into the core — pass those in.
 - Cover the cases that matter: the clean case, the deliberate-conflict case, and the
-  config-driven exception (e.g. two `ONLINE` courses produce **zero** venue clashes).
+  config-driven exception (e.g. two `ONLINE` activities produce **zero** venue clashes).
+- Prove universality: the Configuration Engine must pass for UG, the church fixture, and
+  the trimester fixture through one code path — no org-specific branches.
 
 This finally closes the existing "no tests" gap — start the test culture with the engines,
 where it matters most.
@@ -65,7 +67,7 @@ stored in an httpOnly cookie, never in `localStorage` and never logged.
 ```
 ish-rize-web/
   app/            # Next.js App Router (route groups by role)
-  components/     # timetable/, ingestion/, ui/ — presentational + container split
+  components/     # schedule/, ingestion/, ui/ — presentational + container split
   lib/            # api.ts (typed client), socket.ts, queryKeys.ts
   stores/         # Zustand stores (mirror mobile patterns)
   types/          # shared domain types (match backend engine contracts)

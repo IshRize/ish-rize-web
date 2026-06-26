@@ -1,6 +1,6 @@
 # Contributing to ish-rize-web
 
-Welcome. This is the Next.js web client for IshRize Timetable Intelligence. It talks to
+Welcome. This is the Next.js web client for IshRize Scheduling Intelligence. It talks to
 the existing `ish-rize-backend` over REST + WebSocket. Before writing code, skim
 [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md) (what/when),
 [COPILOT_CONTEXT.md](COPILOT_CONTEXT.md) (how), and
@@ -60,7 +60,7 @@ NEXT_PUBLIC_API_URL=http://localhost:4000/api
 ## Branch naming
 
 `<type>/<kebab-description>` — `feat/`, `fix/`, `chore/`, `refactor/`, `docs/`, `test/`.
-Examples: `feat/timetable-grid-read`, `fix/clash-online-venue`, `chore/tailwind-tokens`.
+Examples: `feat/schedule-grid-read`, `fix/clash-online-venue`, `chore/tailwind-tokens`.
 
 ---
 
@@ -74,7 +74,7 @@ Why the change, not just what.
 Closes #N
 ```
 
-Scopes you'll use here: `timetable`, `clash`, `availability`, `ingestion`, `config`,
+Scopes you'll use here: `schedule`, `clash`, `availability`, `ingestion`, `config`,
 `auth`, `realtime`, `ui`. Full examples in [VERSION_CONTROL_GUIDE.md](VERSION_CONTROL_GUIDE.md).
 
 ---

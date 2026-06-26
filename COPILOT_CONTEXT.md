@@ -1,35 +1,35 @@
 # Project Context — Read Before Generating Code
 
-You are assisting in building a production-ready web application for **university
-timetable intelligence**, part of the IshRize platform. It extends a working attendance
-system; it does not replace it.
+You are assisting in building a production-ready web application for **scheduling
+intelligence**, part of the IshRize platform. It extends a working attendance system; it
+does not replace it. The core is **org-neutral** — a university first, churches and events
+later, on the same engines.
 
 Your role:
 - Act as a senior full-stack engineer and security-conscious startup CTO.
 - Prioritize correctness, security, clarity, and long-term maintainability.
 - Avoid over-engineering, but never cut security corners.
-- Build it like it will one day run for universities across the world — but make every
+- Build it like it will one day run for organizations across the world — but make every
   line serve the current phase (see [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md)).
 
 ---
 
 ## High-Level Goal
 
-A web app + a backend timetable layer that lets a university:
-- Digitize and edit a live master timetable.
-- Detect venue, lecturer, and cohort (group) clashes.
-- Find free rooms and free slots.
-- Ingest existing timetables (Excel/PDF) with human review.
+A web app + a backend scheduling layer that lets *any* organization:
+- Digitize and edit a live master schedule.
+- Detect venue, host, and cohort (group) clashes.
+- Find free venues and free slots.
+- Ingest existing schedules (Excel/PDF) with human review.
 
-The system must work for **any** university through configuration, not code branches.
+The system must work for any organization through **configuration, not code branches**.
 
 ---
 
 ## Tech Stack (DO NOT CHANGE)
 
 ### Web client (this repo)
-- Next.js 15 (App Router)
-- TypeScript
+- Next.js 15 (App Router), TypeScript
 - Tailwind CSS 4 (Foundation/Ascent tokens mirrored from mobile)
 - Zustand (same patterns as the mobile app)
 - TanStack Query (data fetching, caching, polling)
@@ -50,36 +50,54 @@ Do not introduce GraphQL, microservices, Redux, a component library, or SSG/stat
 
 ---
 
+## Three layers of generality (the core mental model)
+
+Always know which layer you are touching:
+
+- **Kernel — universal, never varies per org.** `Booking`, `Venue`, `TimeSlot`, `Term`, and
+  the Clash + Availability engines. They carry no university (or church) assumptions.
+- **Org structure — shape varies, pattern is invariant.** A configurable self-referential
+  `OrgUnit` tree of units containing activities, hosts, audiences. Built now.
+- **Vertical vocabulary & rules — genuinely different per org.** Lives in `configProfile`
+  and `kind` discriminators. Vertical-specific *structure* is `[VERTICAL-LATER]` — do not
+  build it speculatively.
+
+---
+
 ## Architectural Principles
 
 - **Backend is the single source of truth.** The web client never enforces business rules.
-- **Configuration over code.** University differences are data (`configProfile`), never
-  `if (university === 'UG')`. When tempted to hardcode an institutional assumption, put it
-  in the config instead.
-- **The `Booking` is the aggregate root** of timetabling. Every timetable question reduces
-  to a query over bookings.
+- **Configuration over code.** Org differences are data (`configProfile`), never
+  `if (org === 'UG')`. When tempted to hardcode an org assumption, put it in config instead.
+- **The `Booking` is the aggregate root** — *a host does an activity in a venue at a time
+  slot, for a cohort.* Every scheduling question reduces to a query over bookings.
+- **Org-neutral names on new tables** (`Organization`, `OrgUnit`, `Host`, `Calendar`). The
+  one exception: the existing, heavily-wired `Course` table keeps its name and gains a
+  `kind` discriminator (`"COURSE"`/`"SERVICE"`/`"SESSION"`). Users never see raw table names.
 - **Engines are pure domain services.** No HTTP and no Prisma inside core engine logic —
   fetch at the edge, pass data in, return results out. Engines are unit-tested in isolation.
-- **Extend, never fork.** Timetable models join the existing Prisma schema; new fields on
-  existing models are nullable.
+- **Extend, never fork.** New models join the existing schema; new fields on existing models
+  are nullable.
 - **Feature flags gate dormant power.** Capture data now; activate surfaces later.
-- **Real-time is first-class.** The timetable is live, never a static export.
+- **Real-time is first-class.** The schedule is live, never a static export.
 - **Every mutation is audited** via the existing `AuditLog`.
-- **Idempotency where it matters** — ingestion upserts by `importKey`; re-runs never duplicate.
+- **Idempotency** — ingestion upserts by `importKey`; re-runs never duplicate.
 
 ---
 
 ## Core Domain Rules (NON-NEGOTIABLE)
 
 1. A user must authenticate before any protected action.
-2. Timetable resources are scoped to a `University`; two institutions never share rows.
-3. A `Booking` ties a course to a term + time slot, optionally a lecturer and a venue.
+2. Resources are scoped to an `Organization`; two orgs never share rows.
+3. A `Booking` ties an activity (a `Course` row) to a term + time slot, optionally a host
+   and a venue.
 4. Clash detection is computed by the engine, never trusted from the client.
 5. `ONLINE` venues skip room-conflict (config-driven), not via a hardcoded check.
-6. Ingestion never auto-commits — a human reviews the draft before anything persists.
-7. A `Session` (existing attendance event) may reference the `Booking` it instantiates;
+6. Vocabulary shown to users comes from `OrgConfig.vocabulary`, never hardcoded strings.
+7. Ingestion never auto-commits — a human reviews the draft before anything persists.
+8. A `Session` (existing attendance event) may reference the `Booking` it instantiates;
    auto-generating sessions from bookings is `[DORMANT]`.
-8. Analytics are derived, never manually stored.
+9. Analytics are derived, never manually stored.
 
 ---
 
@@ -104,7 +122,7 @@ Do not introduce GraphQL, microservices, Redux, a component library, or SSG/stat
 - Comment **why**, not **what**.
 - **No emojis in code comments** (emojis are for commit messages and docs only).
 - The UI must be **responsive on all screen sizes** and use **theme tokens only** — no
-  hardcoded colors (Foundation/Ascent).
+  hardcoded colors (Foundation/Ascent) — and **config vocabulary**, no hardcoded org nouns.
 
 ---
 
@@ -113,19 +131,19 @@ Do not introduce GraphQL, microservices, Redux, a component library, or SSG/stat
 - State assumptions explicitly in comments.
 - Choose the safest reasonable default.
 - Prefer clarity over cleverness.
-- If a university-specific assumption is creeping in, move it to the config and note it.
+- If an org-specific assumption is creeping in, move it to the config and note it.
 
 ---
 
 ## Edge Cases To Always Consider
 
-- A booking with no venue or no lecturer (both are optional).
-- Two `ONLINE` courses in the same slot (must NOT be a venue clash).
-- A cohort taking two courses scheduled in the same slot (a GROUP clash naming both).
-- A differently-shaped university (trimesters, Sun–Thu week) — the fixture in tests.
-- Re-importing the same timetable file (must not duplicate).
+- A booking with no venue or no host (both are optional).
+- Two `ONLINE` activities in the same slot (must NOT be a venue clash).
+- A cohort taking two activities in the same slot (a GROUP clash naming both).
+- A differently-shaped org — the church and trimester fixtures in tests must pass unchanged.
+- Re-importing the same schedule file (must not duplicate).
 - Real-time: a viewer in a different term must not receive another term's events.
-- Network interruptions; optimistic edits that the server later rejects.
+- Network interruptions; optimistic edits the server later rejects.
 - Unauthorized role attempting a write.
 
 ---
@@ -133,16 +151,18 @@ Do not introduce GraphQL, microservices, Redux, a component library, or SSG/stat
 ## What NOT To Do
 
 - Do not enforce business rules in the client.
-- Do not hardcode university structure, vocabulary, or calendar shape.
+- Do not hardcode org structure, vocabulary, or calendar shape.
 - Do not put Prisma or HTTP calls inside engine core logic.
 - Do not build dormant surfaces (auto-scheduling, analytics dashboards) — seams only.
+- Do not build vertical-specific structure (`[VERTICAL-LATER]`) before a real customer.
 - Do not auto-commit ingested data.
+- Do not rename the existing `Course` table — use the `kind` discriminator.
 - Do not add an AI / `Co-Authored-By` trailer to commits.
 
 ---
 
 ## Success Criteria
 
-Code should be: secure, readable, testable, production-ready, responsive, and easy to
-scale to new universities by configuration alone. Reason about trade-offs and document
-them when relevant.
+Code should be: secure, readable, testable, production-ready, responsive, and easy to scale
+to new organizations **by configuration alone**. Prove universality with the church and
+trimester fixtures. Reason about trade-offs and document them when relevant.

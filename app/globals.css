@@ -1,0 +1,101 @@
+@import "tailwindcss";
+
+/*
+ * IshRize Schedule Intelligence — design tokens.
+ *
+ * Coinbase-CDS-style semantic tokens. Deep blue, infrastructure/trust register —
+ * this is a control-panel tool (grid legibility + a 3-state clash/free/pending
+ * system), not a marketing site. Every color in a component MUST go through one
+ * of these tokens via `var(--token-name)` — never a raw hex value or a Tailwind
+ * default color class (bg-blue-500, text-gray-600, etc).
+ *
+ * Tailwind v4 note: tokens are consumed with arbitrary-value syntax
+ * (e.g. `bg-[var(--bg-primary)]`) rather than generated `@theme` utility
+ * classes. A single `--color-<name>` Tailwind color token applies to every
+ * bg-/text-/border- utility at once, which would collide given this system's
+ * separate --bg-* and --fg-* namespaces (e.g. --bg-primary and --fg-primary
+ * are deliberately different colors). Arbitrary-value var() usage keeps the
+ * two namespaces distinct and is the syntax already used throughout this repo.
+ *
+ * --fg-on-accent-primary and --overlay-backdrop are NOT part of the design
+ * spec — they are two narrow, necessary additions: accent-primary is a vivid
+ * blue that needs a guaranteed-readable button label color, and modal
+ * backdrops need a scrim the spec doesn't otherwise define. Both still flow
+ * through this same token file; nothing in components is a raw hex value.
+ */
+:root {
+  /* Backgrounds */
+  --bg-primary: #fafafa;
+  --bg-secondary: #ffffff;
+  --bg-alternate: #f0f0f3;
+
+  /* Borders */
+  --border-default: #e2e2e5;
+
+  /* Accent — org-themeable (see ThemeToggle.tsx / org config override) */
+  --accent-primary: #0052ff;
+  --accent-primary-hover: #0040cc;
+  --accent-secondary: #1e3a8a;
+
+  /* Scheduling semantics — NEVER themeable, fixed system-wide regardless of org */
+  --bg-clash: #fdecec;
+  --fg-clash: #d62b2b;
+  --bg-free-slot: #e9f8ef;
+  --fg-free-slot: #1c9c57;
+  --bg-pending: #fef6e7;
+  --fg-pending: #b8790b;
+
+  /* Text */
+  --fg-primary: #0b1220;
+  --fg-muted: #5b6478;
+
+  /* Additions beyond the spec (see file header) */
+  --fg-on-accent-primary: #ffffff;
+  --overlay-backdrop: rgb(11 18 32 / 0.5);
+}
+
+[data-theme="dark"] {
+  --bg-primary: #0e0e11;
+  --bg-secondary: #18181c;
+  --bg-alternate: #212126;
+
+  --border-default: #2c2c33;
+
+  --accent-primary: #0052ff;
+  --accent-primary-hover: #5c92ff;
+  --accent-secondary: #4c6ec4;
+
+  --bg-clash: #2e1418;
+  --fg-clash: #f26b6b;
+  --bg-free-slot: #10261b;
+  --fg-free-slot: #4fd58a;
+  --bg-pending: #2a2008;
+  --fg-pending: #f0ae45;
+
+  --fg-primary: #eef1f8;
+  --fg-muted: #8088a0;
+
+  --fg-on-accent-primary: #ffffff;
+  --overlay-backdrop: rgb(0 0 0 / 0.6);
+}
+
+@theme inline {
+  --font-sans: var(--font-geist-sans), Inter, ui-sans-serif, system-ui, sans-serif;
+  --font-mono: var(--font-geist-mono);
+}
+
+body {
+  background: var(--bg-primary);
+  color: var(--fg-primary);
+  font-feature-settings: "tnum" 1; /* tabular numerals: 9am/11am align in the grid */
+}
+
+@keyframes pulse-live {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.35;
+  }
+}
