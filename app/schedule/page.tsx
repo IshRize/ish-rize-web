@@ -68,7 +68,7 @@ export default function SchedulePage() {
 
   const unitsQuery = useQuery({
     queryKey: ['org-units', organizationId],
-    queryFn: () => schedulingApi.listOrgUnits(organizationId),
+    queryFn: () => schedulingApi.listOrgUnits(organizationId, false, true),
     enabled: !!organizationId,
   });
 

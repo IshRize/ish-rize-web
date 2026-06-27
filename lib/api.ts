@@ -89,8 +89,15 @@ export const schedulingApi = {
   getOrgConfig(organizationId: string): Promise<OrgConfig> {
     return request<OrgConfig>(`/organizations/${organizationId}/config`);
   },
-  listOrgUnits(organizationId: string, includeArchived = false): Promise<OrgUnit[]> {
-    const q = includeArchived ? '&includeArchived=true' : '';
+  /**
+   * masterDerivedOnly excludes any OrgUnit that wasn't created by
+   * syncDepartmentsFromSubjectCodes from a real Master Timetable subject
+   * code (a College, a School grouping several real departments, etc.) --
+   * pass it for any "pick a department" selector. The admin departments
+   * management page is the one legitimate exception: it needs the full tree.
+   */
+  listOrgUnits(organizationId: string, includeArchived = false, masterDerivedOnly = false): Promise<OrgUnit[]> {
+    const q = (includeArchived ? '&includeArchived=true' : '') + (masterDerivedOnly ? '&masterDerivedOnly=true' : '');
     return request<OrgUnit[]>(`/org-units?organizationId=${organizationId}${q}`);
   },
   createOrgUnit(input: { organizationId: string; parentId: string | null; name: string; unitType: string }): Promise<OrgUnit> {
