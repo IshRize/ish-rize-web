@@ -27,8 +27,19 @@ export function useScheduleSocket(termId: string | undefined): { connected: bool
     let cancelled = false;
 
     const handleBookingChanged = (): void => {
-      queryClient.invalidateQueries({ queryKey: ['schedule', termId] });
-      queryClient.invalidateQueries({ queryKey: ['clashes', termId] });
+      // Every cache a booking mutation can affect. Keys are invalidated by
+      // prefix, so ['schedule', termId] also matches ['schedule', termId,
+      // orgUnitId] -- the department-scoped variants used by the dept and
+      // clashes views -- without listing each orgUnit explicitly.
+      for (const key of [
+        ['schedule', termId],
+        ['clashes', termId],
+        ['department-timetable', termId],
+        ['teaching-load', termId],
+        ['my-teaching-load', termId],
+      ]) {
+        queryClient.invalidateQueries({ queryKey: key });
+      }
     };
     const handleConnect = (): void => setConnected(true);
     const handleDisconnect = (): void => setConnected(false);

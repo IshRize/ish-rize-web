@@ -18,8 +18,10 @@ import { useQuery } from '@tanstack/react-query';
 import { schedulingApi } from '@/lib/api';
 import { useAuthStore } from '@/stores/authStore';
 import { useScheduleSelectionStore } from '@/stores/scheduleSelectionStore';
+import { useScheduleSocket } from '@/hooks/useScheduleSocket';
 import { AppHeader } from '@/components/layout/AppHeader';
 import { AppShell } from '@/components/layout/AppShell';
+import { LiveSyncIndicator } from '@/components/ui/LiveSyncIndicator';
 import { Select } from '@/components/ui/Select';
 
 function formatHours(minutes: number): string {
@@ -41,6 +43,9 @@ export default function TeachingLoadPage() {
   useEffect(() => {
     if (!authLoading && !isAuthenticated) router.replace('/login');
   }, [authLoading, isAuthenticated, router]);
+
+  // Live: scheduled hours recompute when any booking in this term changes.
+  const { connected } = useScheduleSocket(termId);
 
   const isAdmin = user?.role === 'ADMIN';
 
@@ -83,7 +88,7 @@ export default function TeachingLoadPage() {
 
   return (
     <AppShell>
-      <AppHeader title="Teaching Load" />
+      <AppHeader title="Teaching Load" endSlot={<LiveSyncIndicator connected={connected} />} />
 
       <section className="mb-4 flex flex-wrap items-end gap-3 rounded-lg border border-[var(--border-default)] bg-[var(--bg-secondary)] p-4">
         <Select
