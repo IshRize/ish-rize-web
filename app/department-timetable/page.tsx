@@ -76,7 +76,7 @@ export default function DepartmentTimetablePage() {
   // gated separately below, by canEditThisDept.
   const allUnitsQuery = useQuery({
     queryKey: ['org-units', organizationId],
-    queryFn: () => schedulingApi.listOrgUnits(organizationId),
+    queryFn: () => schedulingApi.listOrgUnits(organizationId, false, true),
     enabled: !!organizationId,
   });
   const myAssignmentsQuery = useQuery({
