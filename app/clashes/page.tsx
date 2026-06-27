@@ -16,8 +16,10 @@ import { useQuery } from '@tanstack/react-query';
 import { schedulingApi } from '@/lib/api';
 import { useAuthStore } from '@/stores/authStore';
 import { useScheduleSelectionStore } from '@/stores/scheduleSelectionStore';
+import { useScheduleSocket } from '@/hooks/useScheduleSocket';
 import { AppHeader } from '@/components/layout/AppHeader';
 import { AppShell } from '@/components/layout/AppShell';
+import { LiveSyncIndicator } from '@/components/ui/LiveSyncIndicator';
 import type { Clash } from '@/types/scheduling';
 
 const CLASH_LABEL: Record<Clash['type'], string> = {
@@ -55,6 +57,10 @@ export default function ClashesPage() {
     if (!authLoading && !isAuthenticated) router.replace('/login');
   }, [authLoading, isAuthenticated, router]);
 
+  // Live: re-runs clash detection the moment any client changes a booking
+  // in this term, so the report never goes stale behind another user's edit.
+  const { connected } = useScheduleSocket(termId);
+
   const clashesQuery = useQuery({
     queryKey: ['clashes', termId],
     queryFn: () => schedulingApi.getClashes(termId),
@@ -73,7 +79,7 @@ export default function ClashesPage() {
 
   return (
     <AppShell>
-      <AppHeader title="Clash Report" />
+      <AppHeader title="Clash Report" endSlot={<LiveSyncIndicator connected={connected} />} />
 
       {clashesQuery.isLoading ? (
         <p className="text-sm text-[var(--fg-muted)]">Checking for clashes…</p>

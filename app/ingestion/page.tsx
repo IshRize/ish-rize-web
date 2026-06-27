@@ -15,7 +15,7 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { ingestionApi, schedulingApi } from '@/lib/api';
 import { useAuthStore } from '@/stores/authStore';
 import { useScheduleSelectionStore } from '@/stores/scheduleSelectionStore';
@@ -28,6 +28,7 @@ export default function IngestionPage() {
   const router = useRouter();
   const { user, isAuthenticated, isLoading: authLoading, loadUser } = useAuthStore();
   const { organizationId, termId } = useScheduleSelectionStore();
+  const queryClient = useQueryClient();
 
   const [file, setFile] = useState<File | null>(null);
   const [isParsing, setIsParsing] = useState(false);
@@ -75,6 +76,13 @@ export default function IngestionPage() {
     try {
       const commit = await ingestionApi.commitMaster(organizationId, termId, result.draftSlots);
       setCommitResult(commit);
+      // The Master Timetable page reads ['master-slots', termId]; a commit
+      // also auto-derives any new departments from the file's subject codes
+      // (syncDepartmentsFromSubjectCodes), so refresh the org-unit pickers
+      // too -- otherwise both stay stale for up to the 30s query staleTime
+      // after navigating away from here.
+      queryClient.invalidateQueries({ queryKey: ['master-slots', termId] });
+      queryClient.invalidateQueries({ queryKey: ['org-units', organizationId] });
     } catch (err) {
       setCommitError(err instanceof Error ? err.message : 'Commit failed');
     } finally {

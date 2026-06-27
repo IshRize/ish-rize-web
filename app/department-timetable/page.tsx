@@ -20,8 +20,10 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { schedulingApi } from '@/lib/api';
 import { useAuthStore } from '@/stores/authStore';
 import { useScheduleSelectionStore } from '@/stores/scheduleSelectionStore';
+import { useScheduleSocket } from '@/hooks/useScheduleSocket';
 import { AppHeader } from '@/components/layout/AppHeader';
 import { AppShell } from '@/components/layout/AppShell';
+import { LiveSyncIndicator } from '@/components/ui/LiveSyncIndicator';
 import { DecomposeMasterSlotModal } from '@/components/department-timetable/DecomposeMasterSlotModal';
 import { DepartmentScheduleGrid } from '@/components/department-timetable/DepartmentScheduleGrid';
 import { ImportDepartmentTimetableModal } from '@/components/department-timetable/ImportDepartmentTimetableModal';
@@ -69,6 +71,10 @@ export default function DepartmentTimetablePage() {
   useEffect(() => {
     if (!authLoading && !isAuthenticated) router.replace('/login');
   }, [authLoading, isAuthenticated, router]);
+
+  // Live: a colleague decomposing a slot, rescheduling, or importing into
+  // this term updates this grid (and its clash badges) without a refresh.
+  const { connected } = useScheduleSocket(termId);
 
   const isAdmin = user?.role === 'ADMIN';
 
@@ -159,6 +165,11 @@ export default function DepartmentTimetablePage() {
     queryClient.invalidateQueries({ queryKey: ['department-timetable', termId, orgUnitId] });
     queryClient.invalidateQueries({ queryKey: ['clashes', termId, orgUnitId] });
     queryClient.invalidateQueries({ queryKey: ['schedule', termId, orgUnitId] });
+    // A department import can auto-create courses for codes that had none
+    // (so the decompose course-picker and resolver context stay current) and
+    // auto-derive new departments from the file's subject codes.
+    queryClient.invalidateQueries({ queryKey: ['activities', orgUnitId] });
+    queryClient.invalidateQueries({ queryKey: ['org-units', organizationId] });
   }
 
   const decomposeMutation = useMutation({
@@ -233,6 +244,7 @@ export default function DepartmentTimetablePage() {
     <AppShell>
       <AppHeader
         title="Department Timetable"
+        endSlot={<LiveSyncIndicator connected={connected} />}
         showOrganization={false}
         beforeTermSlot={
           <Select

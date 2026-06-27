@@ -17,8 +17,10 @@ import { useQuery } from '@tanstack/react-query';
 import { schedulingApi } from '@/lib/api';
 import { useAuthStore } from '@/stores/authStore';
 import { useScheduleSelectionStore } from '@/stores/scheduleSelectionStore';
+import { useScheduleSocket } from '@/hooks/useScheduleSocket';
 import { AppHeader } from '@/components/layout/AppHeader';
 import { AppShell } from '@/components/layout/AppShell';
+import { LiveSyncIndicator } from '@/components/ui/LiveSyncIndicator';
 import { ScheduleGrid } from '@/components/schedule/ScheduleGrid';
 
 export default function MyTimetablePage() {
@@ -34,6 +36,10 @@ export default function MyTimetablePage() {
   useEffect(() => {
     if (!authLoading && !isAuthenticated) router.replace('/login');
   }, [authLoading, isAuthenticated, router]);
+
+  // Live: my own grid and scheduled hours update when a coordinator changes
+  // any of my bookings in this term.
+  const { connected } = useScheduleSocket(termId);
 
   const myHostQuery = useQuery({ queryKey: ['my-host'], queryFn: () => schedulingApi.getMyHost(), enabled: !!isAuthenticated });
   const configQuery = useQuery({
@@ -66,7 +72,7 @@ export default function MyTimetablePage() {
 
   return (
     <AppShell>
-      <AppHeader title="My Timetable" />
+      <AppHeader title="My Timetable" endSlot={<LiveSyncIndicator connected={connected} />} />
 
       {load && load.bookingCount > 0 && (
         <section className="mb-4 rounded-lg border border-[var(--border-default)] bg-[var(--bg-secondary)] p-4">
