@@ -25,6 +25,7 @@ import { useStructuralSocket } from '@/hooks/useStructuralSocket';
 import { useUndoableMove } from '@/hooks/useUndoableMove';
 import { AppHeader } from '@/components/layout/AppHeader';
 import { AppShell } from '@/components/layout/AppShell';
+import { BackLink } from '@/components/layout/BackLink';
 import { LiveSyncIndicator } from '@/components/ui/LiveSyncIndicator';
 import { DecomposeMasterSlotModal } from '@/components/department-timetable/DecomposeMasterSlotModal';
 import { DepartmentScheduleGrid } from '@/components/department-timetable/DepartmentScheduleGrid';
@@ -223,6 +224,7 @@ export default function DepartmentTimetablePage() {
 
   return (
     <AppShell>
+      <BackLink />
       <AppHeader
         title="Department Timetable"
         endSlot={<LiveSyncIndicator connected={connected} />}

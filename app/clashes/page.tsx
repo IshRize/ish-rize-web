@@ -113,7 +113,7 @@ function ClashRow({
             );
           })}
           {resolveError && <p className="text-xs text-[var(--fg-clash)]">{resolveError}</p>}
-          <Link href="/department-timetable" className="inline-block text-xs text-[var(--accent-primary)] hover:underline">
+          <Link href="/department-timetable?from=clashes" className="inline-block text-xs text-[var(--accent-primary)] hover:underline">
             Open Department Timetable to resolve manually →
           </Link>
         </div>
