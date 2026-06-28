@@ -103,14 +103,15 @@ export default function FreeFinderPage() {
   const [minCapacity, setMinCapacity] = useState('');
   const [unitFilter, setUnitFilter] = useState(ALL);
   const freeVenuesQuery = useQuery({
-    queryKey: ['free-venues', slotId, minCapacity, unitFilter],
+    queryKey: ['free-venues', termId, slotId, minCapacity, unitFilter],
     queryFn: () =>
       schedulingApi.getFreeVenues({
+        termId,
         slotId,
         minCapacity: minCapacity ? Number(minCapacity) : undefined,
         orgUnitId: unitFilter === ALL ? undefined : unitFilter,
       }),
-    enabled: !!slotId,
+    enabled: !!slotId && !!termId,
   });
 
   // Section B: free slots for a group.
@@ -124,9 +125,9 @@ export default function FreeFinderPage() {
   // Section C: free slots for a venue.
   const [venueId, setVenueId] = useState('');
   const freeVenueSlotsQuery = useQuery({
-    queryKey: ['free-venue-slots', venueId],
-    queryFn: () => schedulingApi.getFreeSlotsForVenue(venueId),
-    enabled: !!venueId,
+    queryKey: ['free-venue-slots', venueId, termId],
+    queryFn: () => schedulingApi.getFreeSlotsForVenue(venueId, termId),
+    enabled: !!venueId && !!termId,
   });
 
   if (authLoading || !isAuthenticated) {
