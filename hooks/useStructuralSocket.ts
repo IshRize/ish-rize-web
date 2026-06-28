@@ -32,8 +32,19 @@ export function useStructuralSocket(organizationId: string | undefined): { conne
     const handleStructuralChanged = (): void => {
       // Every cache a department/venue/subject-mapping/master-slot mutation
       // can affect. Invalidated by prefix, same convention as
-      // useScheduleSocket's booking:changed handler.
-      for (const key of [['org-units', organizationId], ['venues', organizationId], ['subject-department-mappings', organizationId], ['master-slots']]) {
+      // useScheduleSocket's booking:changed handler. department-timetable is
+      // included unconditionally (not just for MasterSlot changes) because it
+      // derives its rows from BOTH master slots AND subject-department
+      // mappings (getDepartmentTimetable resolves orgUnitId -> subjectCodes
+      // via the mapping table first) -- a mapping edit can add/remove which
+      // subjects that view shows just as much as a slot edit can.
+      for (const key of [
+        ['org-units', organizationId],
+        ['venues', organizationId],
+        ['subject-department-mappings', organizationId],
+        ['master-slots'],
+        ['department-timetable'],
+      ]) {
         queryClient.invalidateQueries({ queryKey: key });
       }
     };
