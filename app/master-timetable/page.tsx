@@ -109,7 +109,6 @@ export default function MasterTimetablePage() {
     <AppShell>
       <AppHeader
         title="Master Timetable"
-        showOrganization={false}
         filtersSlot={
           <>
             <Select

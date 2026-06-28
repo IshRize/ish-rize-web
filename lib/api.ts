@@ -33,6 +33,7 @@ import type {
   OrgUnit,
   Organization,
   ScheduleResponse,
+  UnifiedTimetableOrg,
   SubjectDepartmentMapping,
   TeachingLoadEntry,
   Term,
@@ -146,6 +147,11 @@ export const schedulingApi = {
   getMyTeachingLoad(termId: string): Promise<MyTeachingLoad> {
     return request<MyTeachingLoad>(`/teaching-load/me?termId=${termId}`);
   },
+  // Gmail-"all inboxes"-style combined view: every organization the caller
+  // belongs to, each using that org's own currently-active term.
+  getMyUnifiedTimetable(): Promise<UnifiedTimetableOrg[]> {
+    return request<UnifiedTimetableOrg[]>('/my-timetable/unified');
+  },
   getTeachingLoad(termId: string, orgUnitId: string): Promise<TeachingLoadEntry[]> {
     return request<TeachingLoadEntry[]>(`/teaching-load?termId=${termId}&orgUnitId=${orgUnitId}`);
   },
@@ -155,9 +161,10 @@ export const schedulingApi = {
   listHosts(orgUnitId: string): Promise<HostSummary[]> {
     return request<HostSummary[]>(`/hosts?orgUnitId=${orgUnitId}`);
   },
-  // null when the current user has no Host record (e.g. a non-teaching ADMIN).
-  getMyHost(): Promise<MyHost | null> {
-    return request<MyHost | null>('/hosts/me');
+  // null when the current user has no Host record in this organization (e.g.
+  // a non-teaching ADMIN, or a lecturer who teaches elsewhere but not here).
+  getMyHost(organizationId: string): Promise<MyHost | null> {
+    return request<MyHost | null>(`/hosts/me?organizationId=${organizationId}`);
   },
   listVenues(organizationId: string, orgUnitId?: string, includeArchived = false): Promise<VenueSummary[]> {
     const q = (orgUnitId ? `&orgUnitId=${orgUnitId}` : '') + (includeArchived ? '&includeArchived=true' : '');

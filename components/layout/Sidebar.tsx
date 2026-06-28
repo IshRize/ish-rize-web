@@ -20,6 +20,7 @@ import { usePathname, useRouter } from 'next/navigation';
 import { useAuthStore } from '@/stores/authStore';
 import { useIsCoordinator } from '@/hooks/useIsCoordinator';
 import { ThemeToggle } from '@/components/ui/ThemeToggle';
+import { OrgSwitcher } from '@/components/layout/OrgSwitcher';
 import { Icons, type IconProps } from '@/lib/icons';
 
 type IconComponent = (props: IconProps) => React.ReactElement;
@@ -126,6 +127,7 @@ export function Sidebar() {
         <div className="flex items-center px-3 py-4">
           <span className={`text-lg font-semibold text-[var(--fg-primary)] ${labelClassName}`}>IshRize</span>
         </div>
+        <OrgSwitcher labelClassName={labelClassName} />
         <nav className="flex-1 space-y-1 overflow-y-auto px-2">
           {navLinks.map((link) => (
             <NavItem

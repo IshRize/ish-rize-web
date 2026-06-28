@@ -228,7 +228,6 @@ export default function DepartmentTimetablePage() {
       <AppHeader
         title="Department Timetable"
         endSlot={<LiveSyncIndicator connected={connected} />}
-        showOrganization={false}
         beforeTermSlot={
           <Select
             label="Department"
