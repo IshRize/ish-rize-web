@@ -45,6 +45,15 @@
   --bg-pending: #fef6e7;
   --fg-pending: #b8790b;
 
+  /* Clash-type accents (Clashes report page only) -- distinguish VENUE/HOST/
+     GROUP clashes by accenting just the icon + type label, not a full card
+     wash, so the page doesn't read as a wall of identical red boxes. VENUE
+     keeps the original --fg-clash red (it's the default/most common case);
+     these two cover HOST and GROUP. No --bg- pair: nothing here uses a tinted
+     background, only foreground icon/text color. */
+  --fg-clash-host: #c2410c;
+  --fg-clash-group: #7c3aed;
+
   /* Text */
   --fg-primary: #0b1220;
   --fg-muted: #5b6478;
@@ -71,6 +80,9 @@
   --fg-free-slot: #4fd58a;
   --bg-pending: #2a2008;
   --fg-pending: #f0ae45;
+
+  --fg-clash-host: #fb923c;
+  --fg-clash-group: #a78bfa;
 
   --fg-primary: #eef1f8;
   --fg-muted: #8088a0;

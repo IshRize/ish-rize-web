@@ -54,6 +54,9 @@ import {
   mdiSchoolOutline,
   mdiHumanMaleBoard,
   mdiChevronRight,
+  mdiDoorOpen,
+  mdiAccountOutline,
+  mdiAccountGroupOutline,
 } from '@mdi/js';
 import { MdiIcon } from '@/components/ui/MdiIcon';
 
@@ -107,4 +110,10 @@ export const Icons = {
   roleStudent: mdiIcon(mdiSchoolOutline),
   roleLecturer: mdiIcon(mdiHumanMaleBoard),
   chevronRight: mdiIcon(mdiChevronRight),
+
+  // Clashes page (Phase 4 of the cross-role fixes plan): one icon per clash
+  // type, paired with --fg-clash/--fg-clash-host/--fg-clash-group.
+  clashVenue: mdiIcon(mdiDoorOpen),
+  clashHost: mdiIcon(mdiAccountOutline),
+  clashGroup: mdiIcon(mdiAccountGroupOutline),
 } as const;
