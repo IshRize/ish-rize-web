@@ -1,7 +1,8 @@
 /**
  * Module: ScheduleGrid
- * Layer:  web-component (TanStack Table)
- * Context: See COPILOT_CONTEXT.md, ARCHITECTURE.md §6 (web app structure), IMPLEMENTATION_PLAN.md (Phase 4)
+ * Layer:  web-component (TanStack Table + dnd-kit)
+ * Context: See COPILOT_CONTEXT.md, ARCHITECTURE.md §6 (web app structure), IMPLEMENTATION_PLAN.md (Phase 4);
+ *          Phase 5 of the cross-role fixes plan (drag-and-drop)
  *
  * Purpose: The master schedule grid. Rows are distinct time-of-day periods
  *          (e.g. "7:30–9:30"), ordered by start time; columns are the org's
@@ -13,17 +14,25 @@
  *          scoping the bookings the parent passes in, not by adding a third
  *          axis to the table.
  *
- *          Cells render BookingCell, with a ClashBadge when the cell's booking
- *          appears in the clash report. When canEdit is set AND a single unit
- *          is targeted (targetOrgUnitId), empty cells get an add affordance —
- *          adding a booking needs to know which unit's activities/hosts to
- *          offer, which a day column alone can't tell you.
+ *          A booking is now draggable to a different cell to reschedule it —
+ *          reuses Department Timetable's DraggableBookingCard/DroppableTimeCell
+ *          (already generic/presentational, no department-specific logic
+ *          inside either) rather than a second drag implementation. Empty
+ *          cells keep their own add affordance inline (BookingCell.tsx is
+ *          retired — DraggableBookingCard is a strict superset of its
+ *          populated-cell rendering, so nothing of it survives unduplicated).
+ *          When canEdit is set AND a single unit is targeted
+ *          (targetOrgUnitId), empty cells get an add affordance — adding a
+ *          booking needs to know which unit's activities/hosts to offer,
+ *          which a day column alone can't tell you.
  */
 'use client';
 
 import { useMemo } from 'react';
 import { createColumnHelper, getCoreRowModel, useReactTable, flexRender } from '@tanstack/react-table';
-import { BookingCell } from './BookingCell';
+import { DndContext, PointerSensor, useSensor, useSensors, type DragEndEvent } from '@dnd-kit/core';
+import { DraggableBookingCard } from '@/components/department-timetable/DraggableBookingCard';
+import { DroppableTimeCell } from '@/components/department-timetable/DroppableTimeCell';
 import { dayLabel } from '@/lib/dayNames';
 import type { Booking, Clash, TimeSlot } from '@/types/scheduling';
 
@@ -36,6 +45,8 @@ interface ScheduleGridProps {
   targetOrgUnitId?: string;
   onAddBooking?: (timeSlotId: string) => void;
   onDeleteBooking?: (bookingId: string) => void;
+  onMoveBooking?: (bookingId: string, fromTimeSlotId: string, toTimeSlotId: string) => void;
+  onAutoReschedule?: (bookingId: string) => void;
 }
 
 interface PeriodRow {
@@ -57,7 +68,13 @@ export function ScheduleGrid({
   targetOrgUnitId,
   onAddBooking,
   onDeleteBooking,
+  onMoveBooking,
+  onAutoReschedule,
 }: ScheduleGridProps) {
+  // Same small movement threshold as Department Timetable's grid, so clicking
+  // a card's remove/auto-reschedule button doesn't get swallowed as a drag.
+  const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 8 } }));
+
   const clashesByBookingId = useMemo(() => {
     const map = new Map<string, Clash[]>();
     for (const clash of clashes) {
@@ -99,6 +116,16 @@ export function ScheduleGrid({
 
   const canAdd = canEdit && !!targetOrgUnitId;
 
+  function handleDragEnd(event: DragEndEvent) {
+    const { active, over } = event;
+    if (!over || over.id === active.id) return;
+    const booking = bookings.find((b) => b.id === active.id);
+    if (!booking) return;
+    const toTimeSlotId = String(over.id);
+    if (toTimeSlotId === booking.timeSlotId) return;
+    onMoveBooking?.(booking.id, booking.timeSlotId, toTimeSlotId);
+  }
+
   const columns = useMemo(
     () => [
       columnHelper.accessor((row) => row, {
@@ -120,20 +147,43 @@ export function ScheduleGrid({
           cell: (info) => {
             const slot = info.getValue();
             if (!slot) return <span className="text-[var(--fg-muted)]">—</span>;
+            const slotBookings = bookingsBySlot.get(slot.id) ?? [];
             return (
-              <BookingCell
-                bookings={bookingsBySlot.get(slot.id) ?? []}
-                clashesByBookingId={clashesByBookingId}
-                canEdit={canAdd}
-                onAdd={() => onAddBooking?.(slot.id)}
-                onDelete={onDeleteBooking}
-              />
+              <DroppableTimeCell timeSlotId={slot.id} canDrop={canEdit}>
+                {slotBookings.length === 0 ? (
+                  canAdd ? (
+                    <button
+                      type="button"
+                      onClick={() => onAddBooking?.(slot.id)}
+                      className="flex h-full w-full items-center justify-center rounded-md border border-dashed border-[var(--fg-free-slot)]/40 bg-[var(--bg-free-slot)]/40 text-[var(--fg-free-slot)] hover:border-[var(--accent-primary)] hover:text-[var(--accent-primary)]"
+                      aria-label="Add booking"
+                    >
+                      +
+                    </button>
+                  ) : (
+                    <span className="flex h-full w-full items-center justify-center rounded-md bg-[var(--bg-free-slot)]/30 text-xs text-[var(--fg-free-slot)]">
+                      Free
+                    </span>
+                  )
+                ) : (
+                  slotBookings.map((b) => (
+                    <DraggableBookingCard
+                      key={b.id}
+                      booking={b}
+                      clashes={clashesByBookingId.get(b.id) ?? []}
+                      canEdit={canEdit}
+                      onDelete={onDeleteBooking}
+                      onAutoReschedule={onAutoReschedule}
+                    />
+                  ))
+                )}
+              </DroppableTimeCell>
             );
           },
         }),
       ),
     ],
-    [weekDays, bookingsBySlot, clashesByBookingId, canAdd, onAddBooking, onDeleteBooking],
+    [weekDays, bookingsBySlot, clashesByBookingId, canEdit, canAdd, onAddBooking, onDeleteBooking, onAutoReschedule],
   );
 
   const table = useReactTable({ data: periodRows, columns, getCoreRowModel: getCoreRowModel() });
@@ -143,37 +193,39 @@ export function ScheduleGrid({
   }
 
   return (
-    <div className="overflow-x-auto rounded-lg border border-[var(--border-default)]">
-      <table className="w-full border-collapse text-sm">
-        <thead className="bg-[var(--accent-secondary)]">
-          {table.getHeaderGroups().map((headerGroup) => (
-            <tr key={headerGroup.id}>
-              {headerGroup.headers.map((header) => (
-                <th
-                  key={header.id}
-                  className="border-b border-[var(--border-default)] px-3 py-2 text-left text-xs font-semibold text-[var(--fg-on-accent-primary)]"
-                >
-                  {flexRender(header.column.columnDef.header, header.getContext())}
-                </th>
-              ))}
-            </tr>
-          ))}
-        </thead>
-        <tbody>
-          {table.getRowModel().rows.map((row) => (
-            <tr key={row.id} className="even:bg-[var(--bg-alternate)]/60 hover:bg-[var(--bg-alternate)]">
-              {row.getVisibleCells().map((cell) => (
-                <td
-                  key={cell.id}
-                  className={`border-b border-[var(--border-default)] px-3 py-2 ${cell.column.id === 'period' ? 'align-middle' : 'align-top'}`}
-                >
-                  {flexRender(cell.column.columnDef.cell, cell.getContext())}
-                </td>
-              ))}
-            </tr>
-          ))}
-        </tbody>
-      </table>
-    </div>
+    <DndContext sensors={sensors} onDragEnd={handleDragEnd}>
+      <div className="overflow-x-auto rounded-lg border border-[var(--border-default)]">
+        <table className="w-full border-collapse text-sm">
+          <thead className="bg-[var(--accent-secondary)]">
+            {table.getHeaderGroups().map((headerGroup) => (
+              <tr key={headerGroup.id}>
+                {headerGroup.headers.map((header) => (
+                  <th
+                    key={header.id}
+                    className="border-b border-[var(--border-default)] px-3 py-2 text-left text-xs font-semibold text-[var(--fg-on-accent-primary)]"
+                  >
+                    {flexRender(header.column.columnDef.header, header.getContext())}
+                  </th>
+                ))}
+              </tr>
+            ))}
+          </thead>
+          <tbody>
+            {table.getRowModel().rows.map((row) => (
+              <tr key={row.id} className="even:bg-[var(--bg-alternate)]/60 hover:bg-[var(--bg-alternate)]">
+                {row.getVisibleCells().map((cell) => (
+                  <td
+                    key={cell.id}
+                    className={`border-b border-[var(--border-default)] px-3 py-2 ${cell.column.id === 'period' ? 'align-middle' : 'align-top'}`}
+                  >
+                    {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                  </td>
+                ))}
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </DndContext>
   );
 }

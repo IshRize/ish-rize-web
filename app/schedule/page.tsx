@@ -20,6 +20,7 @@ import { useAuthStore } from '@/stores/authStore';
 import { useScheduleSelectionStore } from '@/stores/scheduleSelectionStore';
 import { useScheduleSocket } from '@/hooks/useScheduleSocket';
 import { useStructuralSocket } from '@/hooks/useStructuralSocket';
+import { useUndoableMove } from '@/hooks/useUndoableMove';
 import { AppHeader } from '@/components/layout/AppHeader';
 import { AppShell } from '@/components/layout/AppShell';
 import { LiveSyncIndicator } from '@/components/ui/LiveSyncIndicator';
@@ -33,6 +34,7 @@ export default function SchedulePage() {
   const { organizationId, termId } = useScheduleSelectionStore();
   const [filters, setFilters] = useState<ScheduleFilters>({ unitId: ALL, level: ALL, kind: ALL, venueId: ALL });
   const [addTimeSlotId, setAddTimeSlotId] = useState<string | null>(null);
+  const [autoRescheduleError, setAutoRescheduleError] = useState<string | null>(null);
   const queryClient = useQueryClient();
 
   useEffect(() => {
@@ -107,6 +109,16 @@ export default function SchedulePage() {
     onSuccess: invalidateScheduleAndClashes,
   });
 
+  // Drag-and-drop reschedule with undo -- same hook/logic Department
+  // Timetable's grid already uses, not a second implementation.
+  const { undoStack, handleMoveBooking, handleUndo } = useUndoableMove(invalidateScheduleAndClashes);
+
+  const autoRescheduleMutation = useMutation({
+    mutationFn: (bookingId: string) => schedulingApi.autoRescheduleBooking(bookingId),
+    onSuccess: invalidateScheduleAndClashes,
+    onError: (err) => setAutoRescheduleError(err instanceof Error ? err.message : 'Could not auto-resolve this clash'),
+  });
+
   const config = configQuery.data;
   const allUnits = useMemo(() => unitsQuery.data ?? [], [unitsQuery.data]);
   const allBookings = useMemo(() => scheduleQuery.data?.bookings ?? [], [scheduleQuery.data]);
@@ -166,6 +178,22 @@ export default function SchedulePage() {
         </p>
       )}
 
+      {canEditSelectedUnit && undoStack.length > 0 && (
+        <button
+          type="button"
+          onClick={handleUndo}
+          className="mb-3 rounded-md border border-[var(--border-default)] px-3 py-1.5 text-xs text-[var(--fg-muted)] hover:text-[var(--fg-primary)]"
+        >
+          Undo last move
+        </button>
+      )}
+
+      {autoRescheduleError && (
+        <div className="mb-3 rounded-lg border border-[var(--fg-clash)]/30 bg-[var(--bg-clash)] px-4 py-2 text-sm text-[var(--fg-clash)]">
+          {autoRescheduleError}
+        </div>
+      )}
+
       {scheduleQuery.isLoading ? (
         <p className="text-sm text-[var(--fg-muted)]">Loading schedule…</p>
       ) : scheduleQuery.isError ? (
@@ -180,6 +208,8 @@ export default function SchedulePage() {
           targetOrgUnitId={filters.unitId !== ALL ? filters.unitId : undefined}
           onAddBooking={(timeSlotId) => setAddTimeSlotId(timeSlotId)}
           onDeleteBooking={(bookingId) => deleteMutation.mutate(bookingId)}
+          onMoveBooking={handleMoveBooking}
+          onAutoReschedule={(bookingId) => autoRescheduleMutation.mutate(bookingId)}
         />
       )}
 
