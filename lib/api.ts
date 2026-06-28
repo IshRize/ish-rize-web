@@ -189,8 +189,8 @@ export const schedulingApi = {
     const qs = orgUnitId ? `&orgUnitId=${orgUnitId}` : '';
     return request<Clash[]>(`/clashes?termId=${termId}${qs}`);
   },
-  getFreeVenues(params: { slotId: string; minCapacity?: number; orgUnitId?: string }): Promise<VenueSummary[]> {
-    const q = new URLSearchParams({ slotId: params.slotId });
+  getFreeVenues(params: { termId: string; slotId: string; minCapacity?: number; orgUnitId?: string }): Promise<VenueSummary[]> {
+    const q = new URLSearchParams({ termId: params.termId, slotId: params.slotId });
     if (params.minCapacity != null) q.set('minCapacity', String(params.minCapacity));
     if (params.orgUnitId) q.set('orgUnitId', params.orgUnitId);
     return request<VenueSummary[]>(`/availability/venues?${q.toString()}`);
@@ -198,8 +198,8 @@ export const schedulingApi = {
   getFreeSlotsForGroup(groupId: string): Promise<TimeSlot[]> {
     return request<TimeSlot[]>(`/availability/group/${groupId}`);
   },
-  getFreeSlotsForVenue(venueId: string): Promise<TimeSlot[]> {
-    return request<TimeSlot[]>(`/availability/venue/${venueId}`);
+  getFreeSlotsForVenue(venueId: string, termId: string): Promise<TimeSlot[]> {
+    return request<TimeSlot[]>(`/availability/venue/${venueId}?termId=${termId}`);
   },
   createBooking(input: {
     termId: string;
