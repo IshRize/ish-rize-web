@@ -33,7 +33,7 @@ function formatHours(minutes: number): string {
 export default function TeachingLoadPage() {
   const router = useRouter();
   const { user, isAuthenticated, isLoading: authLoading, loadUser } = useAuthStore();
-  const { organizationId, termId } = useScheduleSelectionStore();
+  const { organizationId, termId, setTermId } = useScheduleSelectionStore();
   const [orgUnitId, setOrgUnitId] = useState('');
 
   useEffect(() => {
@@ -51,6 +51,11 @@ export default function TeachingLoadPage() {
 
   const isAdmin = user?.role === 'ADMIN';
 
+  const termsQuery = useQuery({
+    queryKey: ['terms', organizationId],
+    queryFn: () => schedulingApi.listTerms(organizationId),
+    enabled: !!organizationId,
+  });
   const allUnitsQuery = useQuery({
     queryKey: ['org-units', organizationId],
     queryFn: () => schedulingApi.listOrgUnits(organizationId, false, true),
@@ -93,6 +98,12 @@ export default function TeachingLoadPage() {
       <AppHeader title="Teaching Load" endSlot={<LiveSyncIndicator connected={connected} />} />
 
       <section className="mb-4 flex flex-wrap items-end gap-3 rounded-lg border border-[var(--border-default)] bg-[var(--bg-secondary)] p-4">
+        <Select
+          label="Term"
+          value={termId}
+          onChange={setTermId}
+          options={(termsQuery.data ?? []).map((t) => ({ value: t.id, label: t.name }))}
+        />
         <Select
           label="Department"
           value={orgUnitId}

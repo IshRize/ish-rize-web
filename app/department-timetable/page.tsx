@@ -22,6 +22,7 @@ import { useAuthStore } from '@/stores/authStore';
 import { useScheduleSelectionStore } from '@/stores/scheduleSelectionStore';
 import { useScheduleSocket } from '@/hooks/useScheduleSocket';
 import { useStructuralSocket } from '@/hooks/useStructuralSocket';
+import { useUndoableMove } from '@/hooks/useUndoableMove';
 import { AppHeader } from '@/components/layout/AppHeader';
 import { AppShell } from '@/components/layout/AppShell';
 import { LiveSyncIndicator } from '@/components/ui/LiveSyncIndicator';
@@ -35,11 +36,6 @@ import type { Clash, DepartmentTimetableSlot, HostSummary } from '@/types/schedu
 
 const UNASSIGNED = '';
 const ALL_LEVELS = '';
-
-interface UndoEntry {
-  bookingId: string;
-  previousTimeSlotId: string;
-}
 
 export default function DepartmentTimetablePage() {
   const router = useRouter();
@@ -60,7 +56,6 @@ export default function DepartmentTimetablePage() {
   const [decomposeSlot, setDecomposeSlot] = useState<DepartmentTimetableSlot | null>(null);
   const [decomposeError, setDecomposeError] = useState<string | null>(null);
   const [view, setView] = useState<'manage' | 'grid'>('manage');
-  const [undoStack, setUndoStack] = useState<UndoEntry[]>([]);
   const [autoRescheduleError, setAutoRescheduleError] = useState<string | null>(null);
   const [showImportModal, setShowImportModal] = useState(false);
 
@@ -205,23 +200,7 @@ export default function DepartmentTimetablePage() {
     onSuccess: invalidate,
   });
 
-  const moveMutation = useMutation({
-    mutationFn: ({ bookingId, timeSlotId }: { bookingId: string; timeSlotId: string }) =>
-      schedulingApi.updateBooking(bookingId, { timeSlotId }),
-    onSuccess: invalidate,
-  });
-
-  function handleMoveBooking(bookingId: string, fromTimeSlotId: string, toTimeSlotId: string) {
-    setUndoStack((stack) => [...stack, { bookingId, previousTimeSlotId: fromTimeSlotId }]);
-    moveMutation.mutate({ bookingId, timeSlotId: toTimeSlotId });
-  }
-
-  function handleUndo() {
-    const last = undoStack[undoStack.length - 1];
-    if (!last) return;
-    setUndoStack((stack) => stack.slice(0, -1));
-    moveMutation.mutate({ bookingId: last.bookingId, timeSlotId: last.previousTimeSlotId });
-  }
+  const { undoStack, handleMoveBooking, handleUndo } = useUndoableMove(invalidate);
 
   const autoRescheduleMutation = useMutation({
     mutationFn: (bookingId: string) => schedulingApi.autoRescheduleBooking(bookingId),
