@@ -132,6 +132,22 @@ export interface ScheduleResponse {
   bookings: Booking[];
 }
 
+// My Timetable's unified ("all my orgs combined") view -- a flat per-org list
+// with no grid frame, so each booking carries its own TimeSlot directly
+// (every other Booking consumer gets day/time from the grid's row/column
+// instead).
+export interface UnifiedBooking extends Booking {
+  timeSlot: { dayOfWeek: string; startTime: string; endTime: string; label: string | null };
+}
+
+export interface UnifiedTimetableOrg {
+  organizationId: string;
+  organizationName: string;
+  termId: string | null;
+  termName: string | null;
+  bookings: UnifiedBooking[];
+}
+
 export interface Clash {
   type: 'VENUE' | 'HOST' | 'GROUP';
   timeSlotId: string;

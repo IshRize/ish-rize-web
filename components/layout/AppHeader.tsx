@@ -2,14 +2,16 @@
  * Module: AppHeader
  * Layer:  web-component (client)
  * Context: See COPILOT_CONTEXT.md; nav/theme-toggle/sign-out moved to
- *          Sidebar in UI/UX redesign Phase 2 -- this now only carries the
- *          page title and the organization/term selectors.
+ *          Sidebar in UI/UX redesign Phase 2; Organization selection moved to
+ *          Sidebar's OrgSwitcher in Phase 6b -- repeating an Organization
+ *          picker on every page was redundant once the Sidebar carries it
+ *          persistently, the same way nav/theme/sign-out already moved there.
+ *          This now carries the page title and the Term selector.
  *
  * Purpose: Shared header for the Schedule/Clashes/Free-finder/Ingestion
- *          pages — title, organization/term selectors (backed by
- *          scheduleSelectionStore so the choice persists across pages).
- *          Applies the org-neutral accent override (lib/orgTheme.ts) the
- *          moment an org's config resolves.
+ *          pages — title, Term selector (backed by scheduleSelectionStore so
+ *          the choice persists across pages). Applies the org-neutral accent
+ *          override (lib/orgTheme.ts) the moment an org's config resolves.
  */
 'use client';
 
@@ -25,22 +27,15 @@ interface AppHeaderProps {
   title: string;
   /** Rendered next to the title — e.g. the schedule page's live-sync dot. */
   endSlot?: React.ReactNode;
-  /** Hide the Organization selector -- e.g. the department-timetable page is already scoped to one organization, so repeating that selector is redundant; default true. */
-  showOrganization?: boolean;
   /** Rendered in the filter row BEFORE Term -- e.g. the department-timetable page's Department select, so the row reads Department, Term, Level. */
   beforeTermSlot?: React.ReactNode;
-  /** Extra filter controls rendered in the same row as Organization/Term, after Term — e.g. the master timetable's Level filter. */
+  /** Extra filter controls rendered in the same row as Term, after it — e.g. the master timetable's Level filter. */
   filtersSlot?: React.ReactNode;
 }
 
-export function AppHeader({ title, endSlot, showOrganization = true, beforeTermSlot, filtersSlot }: AppHeaderProps) {
+export function AppHeader({ title, endSlot, beforeTermSlot, filtersSlot }: AppHeaderProps) {
   const { user } = useAuthStore();
-  const { organizationId, termId, setOrganizationId, setTermId } = useScheduleSelectionStore();
-
-  const orgsQuery = useQuery({ queryKey: ['organizations'], queryFn: schedulingApi.listOrganizations });
-  useEffect(() => {
-    if (!organizationId && orgsQuery.data?.[0]) setOrganizationId(orgsQuery.data[0].id);
-  }, [organizationId, orgsQuery.data, setOrganizationId]);
+  const { organizationId, termId, setTermId } = useScheduleSelectionStore();
 
   const termsQuery = useQuery({
     queryKey: ['terms', organizationId],
@@ -79,14 +74,6 @@ export function AppHeader({ title, endSlot, showOrganization = true, beforeTermS
       </div>
 
       <div className="flex flex-wrap gap-3">
-        {showOrganization && (
-          <Select
-            label="Organization"
-            value={organizationId}
-            onChange={setOrganizationId}
-            options={(orgsQuery.data ?? []).map((o) => ({ value: o.id, label: o.name }))}
-          />
-        )}
         {beforeTermSlot}
         <Select
           label="Term"
