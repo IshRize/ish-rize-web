@@ -21,6 +21,7 @@ import { schedulingApi } from '@/lib/api';
 import { useAuthStore } from '@/stores/authStore';
 import { useScheduleSelectionStore } from '@/stores/scheduleSelectionStore';
 import { useScheduleSocket } from '@/hooks/useScheduleSocket';
+import { useStructuralSocket } from '@/hooks/useStructuralSocket';
 import { AppHeader } from '@/components/layout/AppHeader';
 import { AppShell } from '@/components/layout/AppShell';
 import { LiveSyncIndicator } from '@/components/ui/LiveSyncIndicator';
@@ -75,6 +76,7 @@ export default function DepartmentTimetablePage() {
   // Live: a colleague decomposing a slot, rescheduling, or importing into
   // this term updates this grid (and its clash badges) without a refresh.
   const { connected } = useScheduleSocket(termId);
+  useStructuralSocket(organizationId);
 
   const isAdmin = user?.role === 'ADMIN';
 

@@ -16,6 +16,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { adminApi, schedulingApi } from '@/lib/api';
 import { useAuthStore } from '@/stores/authStore';
 import { useScheduleSelectionStore } from '@/stores/scheduleSelectionStore';
+import { useStructuralSocket } from '@/hooks/useStructuralSocket';
 import { AppHeader } from '@/components/layout/AppHeader';
 import { AppShell } from '@/components/layout/AppShell';
 
@@ -38,6 +39,8 @@ export default function CoordinatorsAdminPage() {
     if (!authLoading && !isAuthenticated) router.replace('/login');
     else if (!authLoading && user && user.role !== 'ADMIN') router.replace('/schedule');
   }, [authLoading, isAuthenticated, user, router]);
+
+  useStructuralSocket(organizationId);
 
   const usersQuery = useQuery({ queryKey: ['admin-users'], queryFn: adminApi.listUsers });
   const unitsQuery = useQuery({

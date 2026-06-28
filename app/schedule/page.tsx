@@ -19,6 +19,7 @@ import { vocab } from '@/lib/vocab';
 import { useAuthStore } from '@/stores/authStore';
 import { useScheduleSelectionStore } from '@/stores/scheduleSelectionStore';
 import { useScheduleSocket } from '@/hooks/useScheduleSocket';
+import { useStructuralSocket } from '@/hooks/useStructuralSocket';
 import { AppHeader } from '@/components/layout/AppHeader';
 import { AppShell } from '@/components/layout/AppShell';
 import { LiveSyncIndicator } from '@/components/ui/LiveSyncIndicator';
@@ -47,6 +48,9 @@ export default function SchedulePage() {
   // ANY connected client (including this one) changes a booking, so every
   // viewer's grid stays in sync without a manual refresh.
   const { connected } = useScheduleSocket(termId);
+  // Departments/venues created or reassigned by an admin show up here without
+  // a manual refresh too -- same live-sync convention, separate org-scoped room.
+  useStructuralSocket(organizationId);
 
   const isAdmin = user?.role === 'ADMIN';
   const canEdit = user?.role === 'LECTURER' || isAdmin;

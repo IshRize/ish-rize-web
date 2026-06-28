@@ -18,6 +18,7 @@ import { schedulingApi } from '@/lib/api';
 import { vocab } from '@/lib/vocab';
 import { useAuthStore } from '@/stores/authStore';
 import { useScheduleSelectionStore } from '@/stores/scheduleSelectionStore';
+import { useStructuralSocket } from '@/hooks/useStructuralSocket';
 import { AppHeader } from '@/components/layout/AppHeader';
 import { AppShell } from '@/components/layout/AppShell';
 import { Select } from '@/components/ui/Select';
@@ -62,6 +63,8 @@ export default function FreeFinderPage() {
   useEffect(() => {
     if (!authLoading && !isAuthenticated) router.replace('/login');
   }, [authLoading, isAuthenticated, router]);
+
+  useStructuralSocket(organizationId);
 
   const configQuery = useQuery({
     queryKey: ['org-config', organizationId],

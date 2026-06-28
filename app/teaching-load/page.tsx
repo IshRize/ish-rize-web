@@ -19,6 +19,7 @@ import { schedulingApi } from '@/lib/api';
 import { useAuthStore } from '@/stores/authStore';
 import { useScheduleSelectionStore } from '@/stores/scheduleSelectionStore';
 import { useScheduleSocket } from '@/hooks/useScheduleSocket';
+import { useStructuralSocket } from '@/hooks/useStructuralSocket';
 import { AppHeader } from '@/components/layout/AppHeader';
 import { AppShell } from '@/components/layout/AppShell';
 import { LiveSyncIndicator } from '@/components/ui/LiveSyncIndicator';
@@ -46,6 +47,7 @@ export default function TeachingLoadPage() {
 
   // Live: scheduled hours recompute when any booking in this term changes.
   const { connected } = useScheduleSocket(termId);
+  useStructuralSocket(organizationId);
 
   const isAdmin = user?.role === 'ADMIN';
 
