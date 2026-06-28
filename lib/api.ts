@@ -150,9 +150,18 @@ export const schedulingApi = {
   getMyHost(): Promise<MyHost | null> {
     return request<MyHost | null>('/hosts/me');
   },
-  listVenues(organizationId: string, orgUnitId?: string): Promise<VenueSummary[]> {
-    const q = orgUnitId ? `&orgUnitId=${orgUnitId}` : '';
+  listVenues(organizationId: string, orgUnitId?: string, includeArchived = false): Promise<VenueSummary[]> {
+    const q = (orgUnitId ? `&orgUnitId=${orgUnitId}` : '') + (includeArchived ? '&includeArchived=true' : '');
     return request<VenueSummary[]>(`/venues?organizationId=${organizationId}${q}`);
+  },
+  createVenue(input: { organizationId: string; orgUnitId: string | null; name: string; capacity?: number; type?: string }): Promise<VenueSummary> {
+    return request<VenueSummary>('/venues', { method: 'POST', body: JSON.stringify(input) });
+  },
+  updateVenue(
+    id: string,
+    patch: { name?: string; orgUnitId?: string | null; capacity?: number; type?: string; archived?: boolean },
+  ): Promise<VenueSummary> {
+    return request<VenueSummary>(`/venues/${id}`, { method: 'PATCH', body: JSON.stringify(patch) });
   },
   listActivities(orgUnitId: string): Promise<ActivitySummary[]> {
     return request<ActivitySummary[]>(`/activities?orgUnitId=${orgUnitId}`);

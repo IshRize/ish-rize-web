@@ -22,6 +22,11 @@ const SECTIONS = [
     description: 'Create, rename, and archive departments as the real structure becomes known.',
   },
   {
+    href: '/admin/venues',
+    title: 'Venues',
+    description: 'Create, rename, reassign, and archive venues used across the Master Timetable and bookings.',
+  },
+  {
     href: '/admin/coordinators',
     title: 'Department coordinators',
     description: "Grant or revoke a lecturer's permission to manage a specific department's timetable.",

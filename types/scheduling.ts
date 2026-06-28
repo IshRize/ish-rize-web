@@ -99,6 +99,8 @@ export interface VenueSummary {
   name: string;
   type: string;
   capacity: number;
+  orgUnitId: string | null;
+  archived: boolean;
 }
 
 export interface ActivitySummary {

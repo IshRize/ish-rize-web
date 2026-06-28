@@ -20,6 +20,7 @@ import { useQuery } from '@tanstack/react-query';
 import { schedulingApi } from '@/lib/api';
 import { useAuthStore } from '@/stores/authStore';
 import { useIsCoordinator } from '@/hooks/useIsCoordinator';
+import { useStructuralSocket } from '@/hooks/useStructuralSocket';
 import { useScheduleSelectionStore } from '@/stores/scheduleSelectionStore';
 import { AppHeader } from '@/components/layout/AppHeader';
 import { AppShell } from '@/components/layout/AppShell';
@@ -47,6 +48,8 @@ export default function MasterTimetablePage() {
   useEffect(() => {
     if (!authLoading && !isAuthenticated) router.replace('/login');
   }, [authLoading, isAuthenticated, router]);
+
+  useStructuralSocket(organizationId);
 
   useEffect(() => {
     if (!authLoading && isAuthenticated && !coordinatorLoading && !isCoordinator) {
