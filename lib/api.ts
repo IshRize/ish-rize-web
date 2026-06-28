@@ -134,6 +134,15 @@ export const schedulingApi = {
   listMasterSlots(termId: string): Promise<MasterSlotRow[]> {
     return request<MasterSlotRow[]>(`/master-slots?termId=${termId}`);
   },
+  updateMasterSlot(
+    id: string,
+    patch: { subjectCode?: string; level?: number | null; venueId?: string | null; dayOfWeek?: string; timeSlotId?: string },
+  ): Promise<MasterSlotRow> {
+    return request<MasterSlotRow>(`/master-slots/${id}`, { method: 'PATCH', body: JSON.stringify(patch) });
+  },
+  deleteMasterSlot(id: string): Promise<void> {
+    return request<void>(`/master-slots/${id}`, { method: 'DELETE' });
+  },
   getMyTeachingLoad(termId: string): Promise<MyTeachingLoad> {
     return request<MyTeachingLoad>(`/teaching-load/me?termId=${termId}`);
   },

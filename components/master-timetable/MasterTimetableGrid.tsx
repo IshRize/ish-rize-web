@@ -1,22 +1,31 @@
 /**
  * Module: MasterTimetableGrid
  * Layer:  web-component (TanStack Table)
- * Context: See COPILOT_CONTEXT.md; three-tier timetable refactor Phase 4
+ * Context: See COPILOT_CONTEXT.md; three-tier timetable refactor Phase 4;
+ *          Phase 2 of the cross-role fixes plan (scroll-sync fix, click-to-edit)
  *
- * Purpose: Read-only grid of the Master Timetable -- rows are distinct
- *          time-of-day periods, columns are the org's configured weekdays
- *          (same axis model as ScheduleGrid). Unlike ScheduleGrid, a cell here
- *          routinely holds MANY parallel subject offerings (the real export
- *          has dozens running at once per period), so each day is a column
- *          GROUP with Subject/Level/Venue as separate sub-columns -- one
- *          cramped text line per entry doesn't line up across rows once
- *          codes/venues vary in length, but three aligned columns do, the
- *          same way the real spreadsheet exports lay it out.
+ * Purpose: Grid of the Master Timetable -- rows are distinct time-of-day
+ *          periods, columns are the org's configured weekdays (same axis model
+ *          as ScheduleGrid). Unlike ScheduleGrid, a cell here routinely holds
+ *          MANY parallel subject offerings (the real export has dozens running
+ *          at once per period), so each entry shows Subject/Level/Venue as an
+ *          aligned inline row -- one cramped text line per entry doesn't line
+ *          up across rows once codes/venues vary in length, but aligned columns
+ *          do, the same way the real spreadsheet exports lay it out.
  *
- *          Level is only its own sub-column when more than one level can
+ *          Each day is exactly ONE TanStack leaf column (not a column group
+ *          with Subject/Level/Venue as separate sub-columns, as a previous
+ *          version had) -- the Subject/Level/Venue alignment is pure CSS grid
+ *          inside that single header/cell, using the identical
+ *          gridTemplateColumns in both, rather than three independently
+ *          scrolling <td>s. That's what made "Compact (scrollable) cells"
+ *          scroll Subject and Venue independently before: each field had its
+ *          OWN overflow-y-auto container. Now there's exactly one scroll
+ *          container per day-cell, so an entry's fields can never drift apart.
+ *
+ *          Level is only shown as its own field when more than one level can
  *          appear (showLevelColumn) -- once the page's own Level filter has
- *          narrowed everything to one level, repeating it per row is just
- *          noise.
+ *          narrowed everything to one level, repeating it per row is just noise.
  */
 'use client';
 
@@ -31,6 +40,8 @@ interface MasterTimetableGridProps {
   showLevelColumn: boolean;
   showGridLines: boolean;
   scrollableCells: boolean;
+  /** Admin-only: clicking an entry opens the edit/reallocate/delete modal. Omit to keep the grid read-only. */
+  onEntryClick?: (slot: MasterSlotRow) => void;
 }
 
 interface PeriodRow {
@@ -45,30 +56,74 @@ const columnHelper = createColumnHelper<PeriodRow>();
 
 type Field = 'subject' | 'level' | 'venue';
 
+const FIELD_LABEL: Record<Field, string> = { subject: 'Subject', level: 'Level', venue: 'Venue' };
+
 function fieldValue(slot: MasterSlotRow, field: Field): string {
   if (field === 'subject') return slot.subjectCode;
   if (field === 'level') return slot.level != null ? `L${slot.level}` : '—';
   return slot.venue?.name ?? '—';
 }
 
-function EntryColumn({ entries, field, scrollable }: { entries: MasterSlotRow[]; field: Field; scrollable: boolean }) {
+/** Same template used by the header and every entry row in a day-cell, so the fields line up. */
+function gridTemplate(fields: Field[]): string {
+  return fields.map((f) => (f === 'level' ? '2.5rem' : 'minmax(0,1fr)')).join(' ');
+}
+
+function DayHeader({ day, fields }: { day: string; fields: Field[] }) {
+  return (
+    <div className="flex flex-col gap-1">
+      <span>{dayLabel(day)}</span>
+      <div className="grid gap-2" style={{ gridTemplateColumns: gridTemplate(fields) }}>
+        {fields.map((f) => (
+          <span key={f} className="truncate text-[10px] font-normal uppercase tracking-wide text-[var(--fg-on-accent-primary)]/70">
+            {FIELD_LABEL[f]}
+          </span>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function DayCell({
+  entries,
+  fields,
+  scrollable,
+  onEntryClick,
+}: {
+  entries: MasterSlotRow[];
+  fields: Field[];
+  scrollable: boolean;
+  onEntryClick?: (slot: MasterSlotRow) => void;
+}) {
   if (entries.length === 0) return <span className="text-[var(--fg-muted)]">—</span>;
   return (
     <ul className={`space-y-1 ${scrollable ? 'max-h-28 overflow-y-auto' : ''}`}>
-      {entries.map((e) => (
-        <li
-          key={e.id}
-          className={`truncate text-xs leading-5 ${field === 'subject' ? 'font-medium text-[var(--fg-primary)]' : 'text-[var(--fg-muted)]'}`}
-          title={fieldValue(e, field)}
-        >
-          {fieldValue(e, field)}
+      {entries.map((entry) => (
+        <li key={entry.id}>
+          <button
+            type="button"
+            onClick={onEntryClick ? () => onEntryClick(entry) : undefined}
+            disabled={!onEntryClick}
+            className={`grid w-full gap-2 rounded-sm text-left ${onEntryClick ? 'cursor-pointer hover:bg-[var(--bg-alternate)]' : 'cursor-default'}`}
+            style={{ gridTemplateColumns: gridTemplate(fields) }}
+          >
+            {fields.map((field) => (
+              <span
+                key={field}
+                className={`truncate text-xs leading-5 ${field === 'subject' ? 'font-medium text-[var(--fg-primary)]' : 'text-[var(--fg-muted)]'}`}
+                title={fieldValue(entry, field)}
+              >
+                {fieldValue(entry, field)}
+              </span>
+            ))}
+          </button>
         </li>
       ))}
     </ul>
   );
 }
 
-export function MasterTimetableGrid({ slots, weekDays, showLevelColumn, showGridLines, scrollableCells }: MasterTimetableGridProps) {
+export function MasterTimetableGrid({ slots, weekDays, showLevelColumn, showGridLines, scrollableCells, onEntryClick }: MasterTimetableGridProps) {
   const periodRows = useMemo<PeriodRow[]>(() => {
     const map = new Map<string, PeriodRow>();
     for (const slot of slots) {
@@ -86,7 +141,6 @@ export function MasterTimetableGrid({ slots, weekDays, showLevelColumn, showGrid
   }, [slots]);
 
   const fields: Field[] = showLevelColumn ? ['subject', 'level', 'venue'] : ['subject', 'venue'];
-  const fieldHeader: Record<Field, string> = { subject: 'Subject', level: 'Level', venue: 'Venue' };
 
   const columns = useMemo(
     () => [
@@ -103,21 +157,15 @@ export function MasterTimetableGrid({ slots, weekDays, showLevelColumn, showGrid
         },
       }),
       ...weekDays.map((day) =>
-        columnHelper.group({
+        columnHelper.accessor((row) => row.slotsByDay[day] ?? [], {
           id: day,
-          header: dayLabel(day),
-          columns: fields.map((field) =>
-            columnHelper.accessor((row) => row.slotsByDay[day] ?? [], {
-              id: `${day}-${field}`,
-              header: fieldHeader[field],
-              cell: (info) => <EntryColumn entries={info.getValue()} field={field} scrollable={scrollableCells} />,
-            }),
-          ),
+          header: () => <DayHeader day={day} fields={fields} />,
+          cell: (info) => <DayCell entries={info.getValue()} fields={fields} scrollable={scrollableCells} onEntryClick={onEntryClick} />,
         }),
       ),
     ],
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [weekDays, showLevelColumn, scrollableCells],
+    [weekDays, showLevelColumn, scrollableCells, onEntryClick],
   );
 
   const table = useReactTable({ data: periodRows, columns, getCoreRowModel: getCoreRowModel() });
@@ -137,7 +185,6 @@ export function MasterTimetableGrid({ slots, weekDays, showLevelColumn, showGrid
               {headerGroup.headers.map((header) => (
                 <th
                   key={header.id}
-                  colSpan={header.colSpan}
                   className={`${cellBorder} px-3 py-2 text-left text-xs font-semibold text-[var(--fg-on-accent-primary)]`}
                 >
                   {header.isPlaceholder ? null : flexRender(header.column.columnDef.header, header.getContext())}
