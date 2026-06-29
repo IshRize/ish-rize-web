@@ -126,6 +126,7 @@ export interface ActivitySummary {
   // these) -- who currently owns this course in the catalog.
   lecturerId?: string;
   lecturer?: { id: string; firstName: string; lastName: string };
+  courseType?: string;
 }
 
 export interface Booking {

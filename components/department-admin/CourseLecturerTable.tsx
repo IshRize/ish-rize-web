@@ -17,8 +17,11 @@
  */
 'use client';
 
+import { useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { schedulingApi } from '@/lib/api';
+import { CourseDetailModal } from '@/components/department-admin/CourseDetailModal';
+import type { ActivitySummary } from '@/types/scheduling';
 
 interface CourseLecturerTableProps {
   orgUnitId: string;
@@ -26,6 +29,7 @@ interface CourseLecturerTableProps {
 
 export function CourseLecturerTable({ orgUnitId }: CourseLecturerTableProps) {
   const queryClient = useQueryClient();
+  const [detailCourse, setDetailCourse] = useState<ActivitySummary | null>(null);
 
   const coursesQuery = useQuery({
     queryKey: ['activities', orgUnitId],
@@ -69,7 +73,7 @@ export function CourseLecturerTable({ orgUnitId }: CourseLecturerTableProps) {
         <table className="w-full border-collapse text-sm">
           <thead className="bg-[var(--accent-secondary)]">
             <tr>
-              {['Code', 'Name', 'Current lecturer', 'Reassign to'].map((h) => (
+              {['Code', 'Name', 'Type', 'Current lecturer', 'Reassign to', ''].map((h) => (
                 <th key={h} className="border-b border-[var(--border-default)] px-3 py-2 text-left text-xs font-semibold text-[var(--fg-on-accent-primary)]">
                   {h}
                 </th>
@@ -87,6 +91,7 @@ export function CourseLecturerTable({ orgUnitId }: CourseLecturerTableProps) {
                 <tr key={c.id} className="even:bg-[var(--bg-alternate)]/60 hover:bg-[var(--bg-alternate)]">
                   <td className="border-b border-[var(--border-default)] px-3 py-2 text-[var(--fg-primary)]">{c.code}</td>
                   <td className="border-b border-[var(--border-default)] px-3 py-2 text-[var(--fg-primary)]">{c.name}</td>
+                  <td className="border-b border-[var(--border-default)] px-3 py-2 text-[var(--fg-muted)]">{c.courseType ?? 'NONE'}</td>
                   <td className="border-b border-[var(--border-default)] px-3 py-2 text-[var(--fg-muted)]">
                     {c.lecturer ? `${c.lecturer.firstName} ${c.lecturer.lastName}` : '—'}
                   </td>
@@ -110,12 +115,23 @@ export function CourseLecturerTable({ orgUnitId }: CourseLecturerTableProps) {
                       ))}
                     </select>
                   </td>
+                  <td className="border-b border-[var(--border-default)] px-3 py-2">
+                    <button
+                      type="button"
+                      onClick={() => setDetailCourse(c)}
+                      className="text-xs text-[var(--fg-muted)] hover:text-[var(--fg-primary)]"
+                    >
+                      Manage
+                    </button>
+                  </td>
                 </tr>
               );
             })}
           </tbody>
         </table>
       </div>
+
+      {detailCourse && <CourseDetailModal course={detailCourse} orgUnitId={orgUnitId} onClose={() => setDetailCourse(null)} />}
     </div>
   );
 }
