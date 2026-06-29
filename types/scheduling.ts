@@ -94,6 +94,17 @@ export interface MyHost extends HostSummary {
   orgUnitId: string;
 }
 
+// Coordinator Hub's "Lecturers" tab needs more than the dense-grid HostSummary
+// carries -- whether this Host is linked to a real account (userId), and
+// whether it's archived (soft-deleted), so the management table can show and
+// toggle that state. orgUnitId is included so the same list can be filtered
+// by department without a second request.
+export interface ManagedHost extends HostSummary {
+  orgUnitId: string;
+  userId: string | null;
+  archived: boolean;
+}
+
 export interface VenueSummary {
   id: string;
   name: string;
@@ -110,6 +121,11 @@ export interface ActivitySummary {
   kind: string;
   level: number | null;
   orgUnitId: string | null;
+  // Present on the Coordinator Hub's listActivities call (the department
+  // timetable / master timetable consumers of this same type just ignore
+  // these) -- who currently owns this course in the catalog.
+  lecturerId?: string;
+  lecturer?: { id: string; firstName: string; lastName: string };
 }
 
 export interface Booking {

@@ -44,6 +44,11 @@ export function useStructuralSocket(organizationId: string | undefined): { conne
         ['subject-department-mappings', organizationId],
         ['master-slots'],
         ['department-timetable'],
+        // Coordinator Hub: a Host create/update or a Course lecturer
+        // reassignment also needs to invalidate these, same broad-invalidate
+        // convention as everything else in this handler.
+        ['hosts'],
+        ['activities'],
       ]) {
         queryClient.invalidateQueries({ queryKey: key });
       }
