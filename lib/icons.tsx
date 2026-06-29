@@ -57,6 +57,7 @@ import {
   mdiDoorOpen,
   mdiAccountOutline,
   mdiAccountGroupOutline,
+  mdiOfficeBuildingCogOutline,
 } from '@mdi/js';
 import { MdiIcon } from '@/components/ui/MdiIcon';
 
@@ -116,4 +117,7 @@ export const Icons = {
   clashVenue: mdiIcon(mdiDoorOpen),
   clashHost: mdiIcon(mdiAccountOutline),
   clashGroup: mdiIcon(mdiAccountGroupOutline),
+
+  // Coordinator Hub nav link (department-scoped admin)
+  departmentAdmin: mdiIcon(mdiOfficeBuildingCogOutline),
 } as const;

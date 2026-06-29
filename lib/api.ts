@@ -23,10 +23,10 @@ import type {
   DraftBooking,
   DraftMasterSlot,
   GroupSummary,
-  HostSummary,
   MasterSlotCommitResult,
   MasterSlotIngestionResult,
   MasterSlotRow,
+  ManagedHost,
   MyHost,
   MyTeachingLoad,
   OrgConfig,
@@ -158,13 +158,32 @@ export const schedulingApi = {
   listTerms(organizationId: string): Promise<Term[]> {
     return request<Term[]>(`/terms?organizationId=${organizationId}`);
   },
-  listHosts(orgUnitId: string): Promise<HostSummary[]> {
-    return request<HostSummary[]>(`/hosts?orgUnitId=${orgUnitId}`);
+  listHosts(orgUnitId: string, includeArchived = false): Promise<ManagedHost[]> {
+    const q = includeArchived ? '&includeArchived=true' : '';
+    return request<ManagedHost[]>(`/hosts?orgUnitId=${orgUnitId}${q}`);
   },
   // null when the current user has no Host record in this organization (e.g.
   // a non-teaching ADMIN, or a lecturer who teaches elsewhere but not here).
   getMyHost(organizationId: string): Promise<MyHost | null> {
     return request<MyHost | null>(`/hosts/me?organizationId=${organizationId}`);
+  },
+  // Coordinator Hub "Lecturers" tab: link an existing registered LECTURER
+  // (pass userId) or create a bare placeholder (pass initials/displayName) --
+  // gated server-side by canManageDepartment, same as booking mutations.
+  createHost(input: {
+    orgUnitId: string;
+    userId?: string;
+    initials?: string;
+    displayName?: string;
+    name?: string;
+  }): Promise<ManagedHost> {
+    return request<ManagedHost>('/hosts', { method: 'POST', body: JSON.stringify(input) });
+  },
+  updateHost(
+    id: string,
+    patch: { userId?: string | null; initials?: string; displayName?: string; name?: string; archived?: boolean },
+  ): Promise<ManagedHost> {
+    return request<ManagedHost>(`/hosts/${id}`, { method: 'PATCH', body: JSON.stringify(patch) });
   },
   listVenues(organizationId: string, orgUnitId?: string, includeArchived = false): Promise<VenueSummary[]> {
     const q = (orgUnitId ? `&orgUnitId=${orgUnitId}` : '') + (includeArchived ? '&includeArchived=true' : '');
@@ -184,6 +203,12 @@ export const schedulingApi = {
   },
   createCourse(input: { code: string; name: string; orgUnitId: string; level?: number }): Promise<ActivitySummary> {
     return request<ActivitySummary>('/courses', { method: 'POST', body: JSON.stringify(input) });
+  },
+  // Coordinator Hub "Courses" tab: reassign which lecturer owns a course in
+  // the catalog -- gated server-side by canManageDepartment OR being the
+  // course's own current lecturer.
+  updateCourse(courseId: string, patch: { name?: string; description?: string; lecturerId?: string }): Promise<ActivitySummary> {
+    return request<ActivitySummary>(`/courses/${courseId}`, { method: 'PATCH', body: JSON.stringify(patch) });
   },
   getSchedule(termId: string, orgUnitId?: string): Promise<ScheduleResponse> {
     const q = orgUnitId ? `&orgUnitId=${orgUnitId}` : '';

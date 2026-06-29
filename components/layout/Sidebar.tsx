@@ -47,6 +47,15 @@ const MASTER_TIMETABLE_LINK: NavLink = {
   icon: Icons.masterTimetable,
 };
 
+// A coordinator's own management screen (lecturers + course ownership in
+// their department) -- same useIsCoordinator() gate as the Master Timetable
+// link above, not role-based, since coordination is a scoped permission.
+const DEPARTMENT_ADMIN_LINK: NavLink = {
+  href: '/department-admin',
+  label: 'Coordinator Hub',
+  icon: Icons.departmentAdmin,
+};
+
 // Visible to any LECTURER (not just ones who currently coordinate a
 // department, or who's currently assigned to teach anything) since both are
 // scoped/assigned states that can change at any time; each page shows its
@@ -106,7 +115,7 @@ export function Sidebar() {
   const isLecturerEligible = user?.role === 'LECTURER' || isAdmin;
   const navLinks: NavLink[] = [
     NAV_LINKS[0],
-    ...(isCoordinator ? [MASTER_TIMETABLE_LINK] : []),
+    ...(isCoordinator ? [MASTER_TIMETABLE_LINK, DEPARTMENT_ADMIN_LINK] : []),
     ...NAV_LINKS.slice(1),
     ...(isLecturerEligible ? LECTURER_NAV_LINKS : []),
     ...(isAdmin ? ADMIN_NAV_LINKS : []),
