@@ -7,9 +7,12 @@
  *          mirrors the ADMIN hub's shape, but scoped to whichever
  *          department(s) the signed-in person actually coordinates (ADMIN
  *          sees every department instead). Tabs: Lecturers (add/archive
- *          Hosts) and Courses (reassign catalog ownership). Visible only to
- *          coordinators/ADMIN, same gate as the Master Timetable link
- *          (useIsCoordinator) -- everyone else never even sees a 403.
+ *          Hosts), Courses (reassign catalog ownership), and Teaching Load
+ *          (absorbed from the former standalone /teaching-load page in
+ *          Phase 3 -- coordinator-management data belongs here, not its own
+ *          top-level nav item). Visible only to coordinators/ADMIN, same gate
+ *          as the Master Timetable link (useIsCoordinator) -- everyone else
+ *          never even sees a 403.
  */
 'use client';
 
@@ -26,12 +29,14 @@ import { AppShell } from '@/components/layout/AppShell';
 import { Select } from '@/components/ui/Select';
 import { LecturerManagementTable } from '@/components/department-admin/LecturerManagementTable';
 import { CourseLecturerTable } from '@/components/department-admin/CourseLecturerTable';
+import { TeachingLoadTab } from '@/components/department-admin/TeachingLoadTab';
 
-type Tab = 'lecturers' | 'courses';
+type Tab = 'lecturers' | 'courses' | 'teaching-load';
 
 const TABS: { id: Tab; label: string }[] = [
   { id: 'lecturers', label: 'Lecturers' },
   { id: 'courses', label: 'Courses' },
+  { id: 'teaching-load', label: 'Teaching Load' },
 ];
 
 export default function DepartmentAdminPage() {
@@ -129,7 +134,9 @@ export default function DepartmentAdminPage() {
             ))}
           </div>
 
-          {tab === 'lecturers' ? <LecturerManagementTable orgUnitId={orgUnitId} /> : <CourseLecturerTable orgUnitId={orgUnitId} />}
+          {tab === 'lecturers' && <LecturerManagementTable orgUnitId={orgUnitId} />}
+          {tab === 'courses' && <CourseLecturerTable orgUnitId={orgUnitId} />}
+          {tab === 'teaching-load' && <TeachingLoadTab orgUnitId={orgUnitId} />}
         </>
       )}
     </AppShell>
