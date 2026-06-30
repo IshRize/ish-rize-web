@@ -207,7 +207,7 @@ export const schedulingApi = {
   // Coordinator Hub "Courses" tab: reassign which lecturer owns a course in
   // the catalog -- gated server-side by canManageDepartment OR being the
   // course's own current lecturer.
-  updateCourse(courseId: string, patch: { name?: string; description?: string; lecturerId?: string }): Promise<ActivitySummary> {
+  updateCourse(courseId: string, patch: { name?: string; description?: string; lecturerId?: string; courseType?: string }): Promise<ActivitySummary> {
     return request<ActivitySummary>(`/courses/${courseId}`, { method: 'PATCH', body: JSON.stringify(patch) });
   },
   getSchedule(termId: string, orgUnitId?: string): Promise<ScheduleResponse> {
