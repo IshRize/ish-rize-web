@@ -19,13 +19,13 @@
  */
 'use client';
 
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { createColumnHelper, getCoreRowModel, useReactTable, flexRender } from '@tanstack/react-table';
 import { DndContext, PointerSensor, useSensor, useSensors, type DragEndEvent } from '@dnd-kit/core';
 import { DraggableBookingCard } from './DraggableBookingCard';
 import { DroppableTimeCell } from './DroppableTimeCell';
 import { dayLabel } from '@/lib/dayNames';
-import type { Booking, Clash, TimeSlot } from '@/types/scheduling';
+import type { Booking, Clash, DepartmentTimetableSlot, TimeSlot } from '@/types/scheduling';
 
 interface DepartmentScheduleGridProps {
   timeSlots: TimeSlot[];
@@ -33,9 +33,11 @@ interface DepartmentScheduleGridProps {
   bookings: Booking[];
   clashes?: Clash[];
   canEdit?: boolean;
+  timetableSlots?: DepartmentTimetableSlot[];
   onMoveBooking?: (bookingId: string, fromTimeSlotId: string, toTimeSlotId: string) => void;
   onDeleteBooking?: (bookingId: string) => void;
   onAutoReschedule?: (bookingId: string) => void;
+  onAddOffering?: (slot: DepartmentTimetableSlot) => void;
 }
 
 interface PeriodRow {
@@ -54,13 +56,40 @@ export function DepartmentScheduleGrid({
   bookings,
   clashes = [],
   canEdit = false,
+  timetableSlots = [],
   onMoveBooking,
   onDeleteBooking,
   onAutoReschedule,
+  onAddOffering,
 }: DepartmentScheduleGridProps) {
   // A small movement threshold so clicking the "x" remove button on a card
   // doesn't get swallowed as a drag start.
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 8 } }));
+
+  // When multiple MasterSlots share the same timeSlotId (rare but possible),
+  // we need a mini-picker before opening the decompose modal.
+  const [slotPicker, setSlotPicker] = useState<DepartmentTimetableSlot[] | null>(null);
+
+  // Index MasterSlots by the TimeSlot they occupy so cell-click lookups are O(1).
+  const timetableByTimeSlotId = useMemo(() => {
+    const map = new Map<string, DepartmentTimetableSlot[]>();
+    for (const s of timetableSlots) {
+      const bucket = map.get(s.timeSlotId) ?? [];
+      bucket.push(s);
+      map.set(s.timeSlotId, bucket);
+    }
+    return map;
+  }, [timetableSlots]);
+
+  function handleCellAdd(timeSlotId: string) {
+    const matches = timetableByTimeSlotId.get(timeSlotId) ?? [];
+    if (matches.length === 0) return;
+    if (matches.length === 1) {
+      onAddOffering?.(matches[0]);
+    } else {
+      setSlotPicker(matches);
+    }
+  }
 
   const clashesByBookingId = useMemo(() => {
     const map = new Map<string, Clash[]>();
@@ -130,23 +159,45 @@ export function DepartmentScheduleGrid({
             const slot = info.getValue();
             if (!slot) return <span className="text-[var(--fg-muted)]">—</span>;
             const slotBookings = bookingsBySlot.get(slot.id) ?? [];
+            const hasMasterSlot = canEdit && onAddOffering && timetableByTimeSlotId.has(slot.id);
             return (
               <DroppableTimeCell timeSlotId={slot.id} canDrop={canEdit}>
                 {slotBookings.length === 0 ? (
-                  <span className="flex h-full w-full items-center justify-center rounded-md bg-[var(--bg-free-slot)]/30 text-xs text-[var(--fg-free-slot)]">
-                    Free
-                  </span>
+                  hasMasterSlot ? (
+                    <button
+                      type="button"
+                      onClick={() => handleCellAdd(slot.id)}
+                      className="flex h-full min-h-[2.5rem] w-full items-center justify-center rounded-md border border-dashed border-[var(--fg-free-slot)]/40 bg-[var(--bg-free-slot)]/20 text-xs text-[var(--fg-free-slot)] hover:border-[var(--fg-free-slot)] hover:bg-[var(--bg-free-slot)]/40 transition-colors"
+                    >
+                      + Add
+                    </button>
+                  ) : (
+                    <span className="flex h-full w-full items-center justify-center rounded-md bg-[var(--bg-free-slot)]/30 text-xs text-[var(--fg-free-slot)]">
+                      Free
+                    </span>
+                  )
                 ) : (
-                  slotBookings.map((b) => (
-                    <DraggableBookingCard
-                      key={b.id}
-                      booking={b}
-                      clashes={clashesByBookingId.get(b.id) ?? []}
-                      canEdit={canEdit}
-                      onDelete={onDeleteBooking}
-                      onAutoReschedule={onAutoReschedule}
-                    />
-                  ))
+                  <div className="space-y-1">
+                    {slotBookings.map((b) => (
+                      <DraggableBookingCard
+                        key={b.id}
+                        booking={b}
+                        clashes={clashesByBookingId.get(b.id) ?? []}
+                        canEdit={canEdit}
+                        onDelete={onDeleteBooking}
+                        onAutoReschedule={onAutoReschedule}
+                      />
+                    ))}
+                    {hasMasterSlot && (
+                      <button
+                        type="button"
+                        onClick={() => handleCellAdd(slot.id)}
+                        className="w-full rounded-md border border-dashed border-[var(--border-default)] px-2 py-0.5 text-xs text-[var(--fg-muted)] hover:text-[var(--fg-primary)] transition-colors"
+                      >
+                        + Add another
+                      </button>
+                    )}
+                  </div>
                 )}
               </DroppableTimeCell>
             );
@@ -154,7 +205,7 @@ export function DepartmentScheduleGrid({
         }),
       ),
     ],
-    [weekDays, bookingsBySlot, clashesByBookingId, canEdit, onDeleteBooking, onAutoReschedule],
+    [weekDays, bookingsBySlot, clashesByBookingId, canEdit, onDeleteBooking, onAutoReschedule, timetableByTimeSlotId, onAddOffering],
   );
 
   const table = useReactTable({ data: periodRows, columns, getCoreRowModel: getCoreRowModel() });
@@ -164,6 +215,7 @@ export function DepartmentScheduleGrid({
   }
 
   return (
+    <>
     <DndContext sensors={sensors} onDragEnd={handleDragEnd}>
       <div className="overflow-x-auto rounded-lg border border-[var(--border-default)]">
         <table className="w-full border-collapse text-sm">
@@ -198,5 +250,38 @@ export function DepartmentScheduleGrid({
         </table>
       </div>
     </DndContext>
+
+    {/* Multi-slot picker: shown when two+ MasterSlots share the same timeSlot */}
+    {slotPicker && (
+      <div
+        className="fixed inset-0 z-50 flex items-center justify-center bg-[var(--overlay-backdrop)] p-4"
+        onClick={() => setSlotPicker(null)}
+      >
+        <div
+          className="w-full max-w-xs space-y-3 rounded-lg border border-[var(--border-default)] bg-[var(--bg-secondary)] p-4"
+          onClick={(e) => e.stopPropagation()}
+        >
+          <p className="text-sm font-medium text-[var(--fg-primary)]">Which subject are you adding to?</p>
+          {slotPicker.map((s) => (
+            <button
+              key={s.id}
+              type="button"
+              onClick={() => { setSlotPicker(null); onAddOffering?.(s); }}
+              className="w-full rounded-md border border-[var(--border-default)] px-3 py-2 text-left text-sm text-[var(--fg-primary)] hover:bg-[var(--bg-alternate)]"
+            >
+              {s.subjectCode}{s.level != null ? ` (Level ${s.level})` : ''}
+            </button>
+          ))}
+          <button
+            type="button"
+            onClick={() => setSlotPicker(null)}
+            className="w-full text-xs text-[var(--fg-muted)] hover:text-[var(--fg-primary)]"
+          >
+            Cancel
+          </button>
+        </div>
+      </div>
+    )}
+  </>
   );
 }

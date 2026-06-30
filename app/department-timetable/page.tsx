@@ -315,9 +315,11 @@ export default function DepartmentTimetablePage() {
               bookings={filteredBookings}
               clashes={clashesQuery.data ?? []}
               canEdit={canEditThisDept}
+              timetableSlots={filteredSlots}
               onMoveBooking={handleMoveBooking}
               onDeleteBooking={(bookingId) => removeMutation.mutate(bookingId)}
               onAutoReschedule={(bookingId) => autoRescheduleMutation.mutate(bookingId)}
+              onAddOffering={canEditThisDept ? setDecomposeSlot : undefined}
             />
           )}
         </>
