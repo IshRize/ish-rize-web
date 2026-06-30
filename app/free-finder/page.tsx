@@ -1,13 +1,18 @@
 /**
  * Module: Free-finder page
  * Layer:  web-page (client)
- * Context: See COPILOT_CONTEXT.md, IMPLEMENTATION_PLAN.md (Phase 3)
+ * Context: See COPILOT_CONTEXT.md, IMPLEMENTATION_PLAN.md (Phase 3); Coordinator
+ *          Tooling Round 2 Phase 4
  *
  * Purpose: Surface the Availability Engine — free venues at a chosen slot
- *          (with capacity/unit filters), free slots for a cohort, and free
- *          slots for a venue. Each section is an independent query. Results
- *          use the bg-free-slot/fg-free-slot tokens — this page's entire
- *          purpose is the "free" state of the product's 3-state system.
+ *          (with capacity/unit filters), free slots for a cohort, free slots
+ *          for a venue, and venues with zero master-timetable allocation at
+ *          all. The venue-facing sections are now MasterSlot-aware on the
+ *          backend: a space assigned to a department in the master file
+ *          reads as occupied even before it's decomposed into a real
+ *          Booking, which is what makes "free" here trustworthy. Results use
+ *          the bg-free-slot/fg-free-slot tokens — this page's entire purpose
+ *          is the "free" state of the product's 3-state system.
  */
 'use client';
 
@@ -31,7 +36,20 @@ function slotLabel(slot: TimeSlot): string {
   return `${dayLabel(slot.dayOfWeek)} · ${slot.startTime}–${slot.endTime}`;
 }
 
-function TimeSlotList({ slots }: { slots: TimeSlot[] | undefined }) {
+function FinderCard({ title, hint, children }: { title: string; hint?: string; children: React.ReactNode }) {
+  return (
+    <section className="flex flex-col gap-3 rounded-lg border border-[var(--border-default)] bg-[var(--bg-secondary)] p-4">
+      <div>
+        <h2 className="text-sm font-semibold text-[var(--fg-primary)]">{title}</h2>
+        {hint && <p className="mt-0.5 text-xs text-[var(--fg-muted)]">{hint}</p>}
+      </div>
+      {children}
+    </section>
+  );
+}
+
+function TimeSlotList({ slots, loading }: { slots: TimeSlot[] | undefined; loading?: boolean }) {
+  if (loading) return <p className="text-sm text-[var(--fg-muted)]">Loading…</p>;
   if (!slots) return null;
   if (slots.length === 0) {
     return <p className="text-sm text-[var(--fg-muted)]">No free slots.</p>;
@@ -130,6 +148,13 @@ export default function FreeFinderPage() {
     enabled: !!venueId && !!termId,
   });
 
+  // Section D: venues with zero master-timetable allocation this term.
+  const unusedVenuesQuery = useQuery({
+    queryKey: ['unused-venues', termId, organizationId],
+    queryFn: () => schedulingApi.getUnusedVenues(termId, organizationId),
+    enabled: !!termId && !!organizationId,
+  });
+
   if (authLoading || !isAuthenticated) {
     return (
       <main className="flex min-h-screen items-center justify-center bg-[var(--bg-primary)]">
@@ -142,70 +167,112 @@ export default function FreeFinderPage() {
     <AppShell>
       <AppHeader title="Free Finder" />
 
-      <div className="grid gap-6 lg:grid-cols-3">
-        <section className="space-y-3 rounded-lg border border-[var(--border-default)] bg-[var(--bg-secondary)] p-4">
-          <h2 className="text-sm font-semibold text-[var(--fg-primary)]">Free venues at a slot</h2>
+      <p className="mb-4 text-xs text-[var(--fg-muted)]">
+        Availability reflects the master timetable, not just confirmed offerings — a venue assigned to a department
+        there reads as busy here even before that slot is decomposed into a named course.
+      </p>
+
+      <div className="grid gap-4 lg:grid-cols-2">
+        <FinderCard title="Free venues at a slot" hint="Pick a time slot to see which venues have no allocation there.">
           <Select
             label="Time slot"
             value={slotId}
             onChange={setSlotId}
             options={[{ value: '', label: 'Choose a slot…' }, ...timeSlots.map((s) => ({ value: s.id, label: slotLabel(s) }))]}
           />
-          <label className="flex flex-col gap-1 text-xs text-[var(--fg-muted)]">
-            Minimum capacity
-            <input
-              type="number"
-              min={0}
-              value={minCapacity}
-              onChange={(e) => setMinCapacity(e.target.value)}
-              className="rounded-md border border-[var(--border-default)] bg-[var(--bg-primary)] px-2 py-1.5 text-sm tabular-nums text-[var(--fg-primary)]"
-            />
-          </label>
-          <Select
-            label={vocab(config, 'unit')}
-            value={unitFilter}
-            onChange={setUnitFilter}
-            options={[{ value: ALL, label: 'Any unit' }, ...units.map((u) => ({ value: u.id, label: u.name }))]}
-          />
-          {freeVenuesQuery.data && (
+          <div className="flex gap-3">
+            <label className="flex flex-1 flex-col gap-1 text-xs text-[var(--fg-muted)]">
+              Minimum capacity
+              <input
+                type="number"
+                min={0}
+                value={minCapacity}
+                onChange={(e) => setMinCapacity(e.target.value)}
+                className="rounded-md border border-[var(--border-default)] bg-[var(--bg-primary)] px-2 py-1.5 text-sm tabular-nums text-[var(--fg-primary)]"
+              />
+            </label>
+            <div className="flex-1">
+              <Select
+                label={vocab(config, 'unit')}
+                value={unitFilter}
+                onChange={setUnitFilter}
+                options={[{ value: ALL, label: 'Any unit' }, ...units.map((u) => ({ value: u.id, label: u.name }))]}
+              />
+            </div>
+          </div>
+          {!slotId ? (
+            <p className="text-sm text-[var(--fg-muted)]">Choose a time slot to see free venues.</p>
+          ) : freeVenuesQuery.isLoading ? (
+            <p className="text-sm text-[var(--fg-muted)]">Loading…</p>
+          ) : (
             <ul className="flex flex-col gap-1">
-              {freeVenuesQuery.data.length === 0 ? (
-                <p className="text-sm text-[var(--fg-muted)]">No free venues.</p>
+              {(freeVenuesQuery.data ?? []).length === 0 ? (
+                <p className="text-sm text-[var(--fg-muted)]">No free venues at this slot.</p>
               ) : (
-                freeVenuesQuery.data.map((v) => (
+                freeVenuesQuery.data!.map((v) => (
                   <li
                     key={v.id}
-                    className="rounded-md border border-[var(--fg-free-slot)]/30 bg-[var(--bg-free-slot)] px-2 py-1 text-sm text-[var(--fg-free-slot)]"
+                    className="flex items-center justify-between rounded-md border border-[var(--fg-free-slot)]/30 bg-[var(--bg-free-slot)] px-2 py-1 text-sm text-[var(--fg-free-slot)]"
                   >
-                    {v.name} <span className="tabular-nums opacity-80">· cap {v.capacity}</span>
+                    <span>{v.name}</span>
+                    <span className="tabular-nums opacity-80">cap {v.capacity}</span>
                   </li>
                 ))
               )}
             </ul>
           )}
-        </section>
+        </FinderCard>
 
-        <section className="space-y-3 rounded-lg border border-[var(--border-default)] bg-[var(--bg-secondary)] p-4">
-          <h2 className="text-sm font-semibold text-[var(--fg-primary)]">Free slots for a {vocab(config, 'group').toLowerCase()}</h2>
+        <FinderCard title={`Free slots for a ${vocab(config, 'group').toLowerCase()}`} hint="Pick a cohort to see when none of its linked courses clash.">
           <Select
             label={vocab(config, 'group')}
             value={groupId}
             onChange={setGroupId}
             options={[{ value: '', label: 'Choose…' }, ...groups.map((g) => ({ value: g.id, label: g.name }))]}
           />
-          <TimeSlotList slots={freeGroupSlotsQuery.data} />
-        </section>
+          {!groupId ? (
+            <p className="text-sm text-[var(--fg-muted)]">Choose a {vocab(config, 'group').toLowerCase()} to see free slots.</p>
+          ) : (
+            <TimeSlotList slots={freeGroupSlotsQuery.data} loading={freeGroupSlotsQuery.isLoading} />
+          )}
+        </FinderCard>
 
-        <section className="space-y-3 rounded-lg border border-[var(--border-default)] bg-[var(--bg-secondary)] p-4">
-          <h2 className="text-sm font-semibold text-[var(--fg-primary)]">Free slots for a venue</h2>
+        <FinderCard title="Free slots for a venue" hint="Pick a venue to see which time slots have no allocation there this term.">
           <Select
             label="Venue"
             value={venueId}
             onChange={setVenueId}
             options={[{ value: '', label: 'Choose…' }, ...venues.map((v) => ({ value: v.id, label: v.name }))]}
           />
-          <TimeSlotList slots={freeVenueSlotsQuery.data} />
-        </section>
+          {!venueId ? (
+            <p className="text-sm text-[var(--fg-muted)]">Choose a venue to see free slots.</p>
+          ) : (
+            <TimeSlotList slots={freeVenueSlotsQuery.data} loading={freeVenueSlotsQuery.isLoading} />
+          )}
+        </FinderCard>
+
+        <FinderCard
+          title="Unused venues this term"
+          hint="No department has been assigned any slot in these venues at all — strong candidates for new offerings."
+        >
+          {unusedVenuesQuery.isLoading ? (
+            <p className="text-sm text-[var(--fg-muted)]">Loading…</p>
+          ) : (unusedVenuesQuery.data ?? []).length === 0 ? (
+            <p className="text-sm text-[var(--fg-muted)]">Every venue has at least one master timetable allocation this term.</p>
+          ) : (
+            <ul className="flex flex-col gap-1">
+              {unusedVenuesQuery.data!.map((v) => (
+                <li
+                  key={v.id}
+                  className="flex items-center justify-between rounded-md border border-[var(--fg-free-slot)]/30 bg-[var(--bg-free-slot)] px-2 py-1 text-sm text-[var(--fg-free-slot)]"
+                >
+                  <span>{v.name}</span>
+                  <span className="tabular-nums opacity-80">cap {v.capacity}</span>
+                </li>
+              ))}
+            </ul>
+          )}
+        </FinderCard>
       </div>
     </AppShell>
   );

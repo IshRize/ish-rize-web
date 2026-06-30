@@ -254,6 +254,9 @@ export const schedulingApi = {
   getFreeSlotsForVenue(venueId: string, termId: string): Promise<TimeSlot[]> {
     return request<TimeSlot[]>(`/availability/venue/${venueId}?termId=${termId}`);
   },
+  getUnusedVenues(termId: string, organizationId: string): Promise<VenueSummary[]> {
+    return request<VenueSummary[]>(`/availability/unused-venues?termId=${termId}&organizationId=${organizationId}`);
+  },
   createBooking(input: {
     termId: string;
     courseId: string;
