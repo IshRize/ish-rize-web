@@ -217,6 +217,27 @@ export const schedulingApi = {
   listGroups(termId: string): Promise<GroupSummary[]> {
     return request<GroupSummary[]>(`/groups?termId=${termId}`);
   },
+  createGroup(input: { termId: string; orgUnitId: string; name: string }): Promise<GroupSummary> {
+    return request<GroupSummary>('/groups', { method: 'POST', body: JSON.stringify(input) });
+  },
+  updateGroup(groupId: string, patch: { name: string }): Promise<GroupSummary> {
+    return request<GroupSummary>(`/groups/${groupId}`, { method: 'PATCH', body: JSON.stringify(patch) });
+  },
+  deleteGroup(groupId: string): Promise<void> {
+    return request<void>(`/groups/${groupId}`, { method: 'DELETE' });
+  },
+  addCourseToGroup(groupId: string, courseId: string): Promise<GroupSummary> {
+    return request<GroupSummary>(`/groups/${groupId}/courses`, { method: 'POST', body: JSON.stringify({ courseId }) });
+  },
+  removeCourseFromGroup(groupId: string, courseId: string): Promise<GroupSummary> {
+    return request<GroupSummary>(`/groups/${groupId}/courses/${courseId}`, { method: 'DELETE' });
+  },
+  addHostToGroup(groupId: string, input: { hostId: string; courseId: string }): Promise<GroupSummary> {
+    return request<GroupSummary>(`/groups/${groupId}/hosts`, { method: 'POST', body: JSON.stringify(input) });
+  },
+  removeHostFromGroup(groupId: string, hostId: string, courseId: string): Promise<GroupSummary> {
+    return request<GroupSummary>(`/groups/${groupId}/hosts/${hostId}/courses/${courseId}`, { method: 'DELETE' });
+  },
   getClashes(termId: string, orgUnitId?: string): Promise<Clash[]> {
     const qs = orgUnitId ? `&orgUnitId=${orgUnitId}` : '';
     return request<Clash[]>(`/clashes?termId=${termId}${qs}`);

@@ -182,7 +182,15 @@ export interface GroupSummary {
   termId: string;
   orgUnitId: string;
   name: string;
-  courseLinks: { courseId: string }[];
+  courseLinks: {
+    courseId: string;
+    course: { id: string; code: string; name: string; orgUnit: { id: string; name: string } | null };
+  }[];
+  hostLinks: {
+    hostId: string;
+    courseId: string;
+    host: { id: string; displayName: string; initials: string };
+  }[];
 }
 
 // The Master Timetable layer: subject code + level + day + time + venue --
