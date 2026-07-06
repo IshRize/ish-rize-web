@@ -30,6 +30,7 @@ import { LiveSyncIndicator } from '@/components/ui/LiveSyncIndicator';
 import { DecomposeMasterSlotModal } from '@/components/department-timetable/DecomposeMasterSlotModal';
 import { DepartmentScheduleGrid } from '@/components/department-timetable/DepartmentScheduleGrid';
 import { ImportDepartmentTimetableModal } from '@/components/department-timetable/ImportDepartmentTimetableModal';
+import { AddBookingModal } from '@/components/schedule/AddBookingModal';
 import { ClashBadge } from '@/components/schedule/ClashBadge';
 import { Select } from '@/components/ui/Select';
 import { dayLabel } from '@/lib/dayNames';
@@ -56,6 +57,10 @@ export default function DepartmentTimetablePage() {
 
   const [decomposeSlot, setDecomposeSlot] = useState<DepartmentTimetableSlot | null>(null);
   const [decomposeError, setDecomposeError] = useState<string | null>(null);
+  // Grid cell with no backing MasterSlot: free-form booking at that time
+  // instead of a decomposition (no masterSlotId).
+  const [freeFormTimeSlotId, setFreeFormTimeSlotId] = useState<string | null>(null);
+  const [freeFormError, setFreeFormError] = useState<string | null>(null);
   const [view, setView] = useState<'manage' | 'grid'>('manage');
   const [autoRescheduleError, setAutoRescheduleError] = useState<string | null>(null);
   const [showImportModal, setShowImportModal] = useState(false);
@@ -191,6 +196,26 @@ export default function DepartmentTimetablePage() {
     onError: (err) => setDecomposeError(err instanceof Error ? err.message : 'Failed to assign'),
   });
 
+  const freeFormAddMutation = useMutation({
+    mutationFn: (input: { courseId: string; hostId?: string; venueId?: string }) => {
+      if (!freeFormTimeSlotId) throw new Error('No time slot selected');
+      return schedulingApi.createBooking({
+        termId,
+        courseId: input.courseId,
+        hostId: input.hostId,
+        venueId: input.venueId,
+        timeSlotId: freeFormTimeSlotId,
+        level: levelFilter === ALL_LEVELS ? undefined : Number(levelFilter),
+      });
+    },
+    onSuccess: () => {
+      setFreeFormTimeSlotId(null);
+      setFreeFormError(null);
+      invalidate();
+    },
+    onError: (err) => setFreeFormError(err instanceof Error ? err.message : 'Failed to add'),
+  });
+
   const reassignMutation = useMutation({
     mutationFn: ({ bookingId, hostId }: { bookingId: string; hostId: string | null }) => schedulingApi.updateBooking(bookingId, { hostId }),
     onSuccess: invalidate,
@@ -320,6 +345,7 @@ export default function DepartmentTimetablePage() {
               onDeleteBooking={(bookingId) => removeMutation.mutate(bookingId)}
               onAutoReschedule={(bookingId) => autoRescheduleMutation.mutate(bookingId)}
               onAddOffering={canEditThisDept ? setDecomposeSlot : undefined}
+              onAddFreeForm={canEditThisDept ? setFreeFormTimeSlotId : undefined}
             />
           )}
         </>
@@ -449,6 +475,21 @@ export default function DepartmentTimetablePage() {
           onSubmit={(input) => decomposeMutation.mutate(input)}
           isSubmitting={decomposeMutation.isPending}
           error={decomposeError}
+        />
+      )}
+
+      {freeFormTimeSlotId && (
+        <AddBookingModal
+          organizationId={organizationId}
+          orgUnitId={orgUnitId}
+          config={configQuery.data}
+          onClose={() => {
+            setFreeFormTimeSlotId(null);
+            setFreeFormError(null);
+          }}
+          onSubmit={(input) => freeFormAddMutation.mutate(input)}
+          isSubmitting={freeFormAddMutation.isPending}
+          error={freeFormError}
         />
       )}
 

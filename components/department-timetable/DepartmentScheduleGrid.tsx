@@ -38,6 +38,7 @@ interface DepartmentScheduleGridProps {
   onDeleteBooking?: (bookingId: string) => void;
   onAutoReschedule?: (bookingId: string) => void;
   onAddOffering?: (slot: DepartmentTimetableSlot) => void;
+  onAddFreeForm?: (timeSlotId: string) => void;
 }
 
 interface PeriodRow {
@@ -61,6 +62,7 @@ export function DepartmentScheduleGrid({
   onDeleteBooking,
   onAutoReschedule,
   onAddOffering,
+  onAddFreeForm,
 }: DepartmentScheduleGridProps) {
   // A small movement threshold so clicking the "x" remove button on a card
   // doesn't get swallowed as a drag start.
@@ -83,8 +85,11 @@ export function DepartmentScheduleGrid({
 
   function handleCellAdd(timeSlotId: string) {
     const matches = timetableByTimeSlotId.get(timeSlotId) ?? [];
-    if (matches.length === 0) return;
-    if (matches.length === 1) {
+    if (matches.length === 0) {
+      // No MasterSlot earmarks this day/time for the department -- fall back
+      // to a free-form booking (no masterSlotId), same as the Schedule page.
+      onAddFreeForm?.(timeSlotId);
+    } else if (matches.length === 1) {
       onAddOffering?.(matches[0]);
     } else {
       setSlotPicker(matches);
@@ -160,10 +165,11 @@ export function DepartmentScheduleGrid({
             if (!slot) return <span className="text-[var(--fg-muted)]">—</span>;
             const slotBookings = bookingsBySlot.get(slot.id) ?? [];
             const hasMasterSlot = canEdit && onAddOffering && timetableByTimeSlotId.has(slot.id);
+            const canAddHere = hasMasterSlot || (canEdit && !!onAddFreeForm);
             return (
               <DroppableTimeCell timeSlotId={slot.id} canDrop={canEdit}>
                 {slotBookings.length === 0 ? (
-                  hasMasterSlot ? (
+                  canAddHere ? (
                     <button
                       type="button"
                       onClick={() => handleCellAdd(slot.id)}
@@ -188,7 +194,7 @@ export function DepartmentScheduleGrid({
                         onAutoReschedule={onAutoReschedule}
                       />
                     ))}
-                    {hasMasterSlot && (
+                    {canAddHere && (
                       <button
                         type="button"
                         onClick={() => handleCellAdd(slot.id)}
@@ -205,7 +211,7 @@ export function DepartmentScheduleGrid({
         }),
       ),
     ],
-    [weekDays, bookingsBySlot, clashesByBookingId, canEdit, onDeleteBooking, onAutoReschedule, timetableByTimeSlotId, onAddOffering],
+    [weekDays, bookingsBySlot, clashesByBookingId, canEdit, onDeleteBooking, onAutoReschedule, timetableByTimeSlotId, onAddOffering, onAddFreeForm],
   );
 
   const table = useReactTable({ data: periodRows, columns, getCoreRowModel: getCoreRowModel() });
