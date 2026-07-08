@@ -14,6 +14,7 @@
 'use client';
 
 import { useState, type FormEvent } from 'react';
+import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { useAuthStore } from '@/stores/authStore';
 import { Icons } from '@/lib/icons';
@@ -40,8 +41,10 @@ export default function LoginPage() {
     <main className="flex min-h-screen items-center justify-center bg-[var(--bg-primary)] px-4 py-10">
       <div className="w-full max-w-sm">
         <div className="mb-6 text-center">
-          <h1 className="text-3xl font-bold tracking-tight text-[var(--fg-primary)]">IshRize</h1>
-          <p className="mt-1 text-sm text-[var(--fg-muted)]">Sign in to view the master schedule.</p>
+          <div className="flex justify-center">
+            <Image src="/logo.png" alt="IshRize" width={80} height={80} priority />
+          </div>
+          <p className="mt-3 text-sm text-[var(--fg-muted)]">Sign in to view the master schedule.</p>
         </div>
 
         <form
