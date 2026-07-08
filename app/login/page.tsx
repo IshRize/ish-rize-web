@@ -42,7 +42,7 @@ export default function LoginPage() {
       <div className="w-full max-w-sm">
         <div className="mb-6 text-center">
           <div className="flex justify-center">
-            <Image src="/logo.png" alt="IshRize" width={80} height={80} priority />
+            <Image src="/logo.png" alt="IshRize" width={80} height={80} priority unoptimized />
           </div>
           <p className="mt-3 text-sm text-[var(--fg-muted)]">Sign in to view the master schedule.</p>
         </div>
