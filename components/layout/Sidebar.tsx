@@ -135,7 +135,7 @@ export function Sidebar() {
     return (
       <>
         <div className="flex items-center px-3 py-4">
-          <Image src="/logo.png" alt="IshRize" width={36} height={36} className="shrink-0" />
+          <Image src="/logo.png" alt="IshRize" width={36} height={36} className="shrink-0" unoptimized />
           <span className={`ml-2 text-lg font-semibold text-[var(--fg-primary)] ${labelClassName}`}>IshRize</span>
         </div>
         <OrgSwitcher labelClassName={labelClassName} />
