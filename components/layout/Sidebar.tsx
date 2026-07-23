@@ -15,7 +15,6 @@
 'use client';
 
 import { useState } from 'react';
-import Image from 'next/image';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { useAuthStore } from '@/stores/authStore';
@@ -135,7 +134,8 @@ export function Sidebar() {
     return (
       <>
         <div className="flex items-center px-3 py-4">
-          <Image src="/logo.png" alt="IshRize" width={36} height={36} className="shrink-0" unoptimized />
+          {/* basePath /app is not auto-prepended by next/image — use plain img */}
+          <img src="/app/logo.png" alt="IshRize" width={36} height={36} className="shrink-0" />
           <span className={`ml-2 text-lg font-semibold text-[var(--fg-primary)] ${labelClassName}`}>IshRize</span>
         </div>
         <OrgSwitcher labelClassName={labelClassName} />
