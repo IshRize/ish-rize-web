@@ -27,6 +27,7 @@ import { LiveSyncIndicator } from '@/components/ui/LiveSyncIndicator';
 import { FilterBar, ALL, type ScheduleFilters } from '@/components/schedule/FilterBar';
 import { ScheduleGrid } from '@/components/schedule/ScheduleGrid';
 import { AddBookingModal } from '@/components/schedule/AddBookingModal';
+import { EmptySchedule } from '@/components/schedule/EmptySchedule';
 
 export default function SchedulePage() {
   const router = useRouter();
@@ -87,6 +88,12 @@ export default function SchedulePage() {
   const clashesQuery = useQuery({
     queryKey: ['clashes', termId],
     queryFn: () => schedulingApi.getClashes(termId),
+    enabled: !!termId,
+  });
+
+  const masterSlotsQuery = useQuery({
+    queryKey: ['master-slots', termId],
+    queryFn: () => schedulingApi.listMasterSlots(termId),
     enabled: !!termId,
   });
 
@@ -198,6 +205,12 @@ export default function SchedulePage() {
         <p className="text-sm text-[var(--fg-muted)]">Loading schedule…</p>
       ) : scheduleQuery.isError ? (
         <p className="text-sm text-[var(--fg-clash)]">Failed to load schedule.</p>
+      ) : allBookings.length === 0 ? (
+        <EmptySchedule
+          isAdmin={isAdmin}
+          hasMasterSlots={(masterSlotsQuery.data?.length ?? 0) > 0}
+          hasBookings={false}
+        />
       ) : (
         <ScheduleGrid
           timeSlots={timeSlots}
