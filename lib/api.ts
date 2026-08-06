@@ -18,12 +18,16 @@ import type {
   Booking,
   BookingIngestionCommitResult,
   BookingIngestionResult,
+  Calendar,
   Clash,
   CoordinatorAssignment,
+  Course,
   DepartmentTimetableSlot,
   DraftBooking,
   DraftMasterSlot,
+  Group,
   GroupSummary,
+  Host,
   HostSummary,
   InviteLink,
   MasterSlotCommitResult,
@@ -44,8 +48,11 @@ import type {
   TeachingLoadEntry,
   Term,
   TimeSlot,
+  Title,
   User,
+  Venue,
   VenueSummary,
+  VenueType,
 } from '@/types/scheduling';
 
 const PROXY_BASE = '/api/proxy';
@@ -199,11 +206,35 @@ export const schedulingApi = {
     const q = orgUnitId ? `&orgUnitId=${orgUnitId}` : '';
     return request<VenueSummary[]>(`/venues?organizationId=${organizationId}${q}`);
   },
+  createVenue(input: { organizationId: string; name: string; type: VenueType; capacity?: number; orgUnitId?: string }): Promise<Venue> {
+    return request<Venue>('/venues', { method: 'POST', body: JSON.stringify(input) });
+  },
+  updateVenue(id: string, patch: { name?: string; type?: VenueType; capacity?: number; archived?: boolean }): Promise<Venue> {
+    return request<Venue>(`/venues/${id}`, { method: 'PATCH', body: JSON.stringify(patch) });
+  },
   listActivities(orgUnitId: string): Promise<ActivitySummary[]> {
     return request<ActivitySummary[]>(`/activities?orgUnitId=${orgUnitId}`);
   },
-  createCourse(input: { code: string; name: string; orgUnitId: string; level?: number }): Promise<ActivitySummary> {
-    return request<ActivitySummary>('/courses', { method: 'POST', body: JSON.stringify(input) });
+  listCourses(organizationId: string): Promise<Course[]> {
+    return request<Course[]>(`/courses?organizationId=${organizationId}`);
+  },
+  createCourse(input: { code: string; name: string; orgUnitId: string; level?: number; kind?: string; courseType?: string; expectedSize?: number }): Promise<Course> {
+    return request<Course>('/courses', { method: 'POST', body: JSON.stringify(input) });
+  },
+  updateCourse(courseId: string, patch: { name?: string; code?: string; level?: number; kind?: string; courseType?: string; expectedSize?: number }): Promise<Course> {
+    return request<Course>(`/courses/${courseId}`, { method: 'PATCH', body: JSON.stringify(patch) });
+  },
+  deleteCourse(courseId: string): Promise<void> {
+    return request<void>(`/courses/${courseId}`, { method: 'DELETE' });
+  },
+  listAllHosts(organizationId: string): Promise<Host[]> {
+    return request<Host[]>(`/hosts?organizationId=${organizationId}`);
+  },
+  createHost(input: { organizationId: string; orgUnitId: string; name: string; initials: string; titleId?: string }): Promise<Host> {
+    return request<Host>('/hosts', { method: 'POST', body: JSON.stringify(input) });
+  },
+  updateHost(id: string, patch: { name?: string; initials?: string; titleId?: string; archived?: boolean }): Promise<Host> {
+    return request<Host>(`/hosts/${id}`, { method: 'PATCH', body: JSON.stringify(patch) });
   },
   getSchedule(termId: string, orgUnitId?: string): Promise<ScheduleResponse> {
     const q = orgUnitId ? `&orgUnitId=${orgUnitId}` : '';
@@ -211,6 +242,24 @@ export const schedulingApi = {
   },
   listGroups(termId: string): Promise<GroupSummary[]> {
     return request<GroupSummary[]>(`/groups?termId=${termId}`);
+  },
+  createGroup(input: { termId: string; orgUnitId: string; name: string }): Promise<Group> {
+    return request<Group>('/groups', { method: 'POST', body: JSON.stringify(input) });
+  },
+  updateGroup(groupId: string, patch: { name?: string }): Promise<Group> {
+    return request<Group>(`/groups/${groupId}`, { method: 'PATCH', body: JSON.stringify(patch) });
+  },
+  deleteGroup(groupId: string): Promise<void> {
+    return request<void>(`/groups/${groupId}`, { method: 'DELETE' });
+  },
+  addCourseToGroup(groupId: string, courseId: string): Promise<void> {
+    return request<void>(`/groups/${groupId}/courses`, { method: 'POST', body: JSON.stringify({ courseId }) });
+  },
+  removeCourseFromGroup(groupId: string, courseId: string): Promise<void> {
+    return request<void>(`/groups/${groupId}/courses/${courseId}`, { method: 'DELETE' });
+  },
+  listTitles(organizationId: string): Promise<Title[]> {
+    return request<Title[]>(`/organizations/${organizationId}/titles`);
   },
   getClashes(termId: string, orgUnitId?: string): Promise<Clash[]> {
     const qs = orgUnitId ? `&orgUnitId=${orgUnitId}` : '';
@@ -347,6 +396,51 @@ export const orgApi = {
       method: 'POST',
       body: JSON.stringify(data),
     });
+  },
+  listCalendars(orgId: string): Promise<Calendar[]> {
+    return request<Calendar[]>(`/organizations/${orgId}/calendars`);
+  },
+  createCalendar(orgId: string, data: { label: string; startDate: string; endDate: string }): Promise<Calendar> {
+    return request<Calendar>(`/organizations/${orgId}/calendars`, {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  },
+  updateCalendar(orgId: string, calendarId: string, data: { label?: string; startDate?: string; endDate?: string }): Promise<Calendar> {
+    return request<Calendar>(`/organizations/${orgId}/calendars/${calendarId}`, {
+      method: 'PATCH',
+      body: JSON.stringify(data),
+    });
+  },
+  createTerm(orgId: string, calendarId: string, data: { name: string; type: string; startDate: string; endDate: string; teachingWeeks?: number }): Promise<Term> {
+    return request<Term>(`/organizations/${orgId}/calendars/${calendarId}/terms`, {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  },
+  updateTerm(orgId: string, termId: string, data: { name?: string; type?: string; startDate?: string; endDate?: string; teachingWeeks?: number }): Promise<Term> {
+    return request<Term>(`/organizations/${orgId}/terms/${termId}`, {
+      method: 'PATCH',
+      body: JSON.stringify(data),
+    });
+  },
+  listTimeSlots(orgId: string): Promise<TimeSlot[]> {
+    return request<TimeSlot[]>(`/organizations/${orgId}/time-slots`);
+  },
+  createTimeSlot(orgId: string, data: { dayOfWeek: string; startTime: string; endTime: string; label?: string; orderIndex?: number }): Promise<TimeSlot> {
+    return request<TimeSlot>(`/organizations/${orgId}/time-slots`, {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  },
+  updateTimeSlot(orgId: string, slotId: string, data: { startTime?: string; endTime?: string; label?: string; orderIndex?: number }): Promise<TimeSlot> {
+    return request<TimeSlot>(`/organizations/${orgId}/time-slots/${slotId}`, {
+      method: 'PATCH',
+      body: JSON.stringify(data),
+    });
+  },
+  deleteTimeSlot(orgId: string, slotId: string): Promise<void> {
+    return request<void>(`/organizations/${orgId}/time-slots/${slotId}`, { method: 'DELETE' });
   },
 };
 
