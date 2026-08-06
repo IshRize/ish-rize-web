@@ -9,7 +9,7 @@ export default function NotFound() {
         <FileQuestion size={64} className="mx-auto mb-4 text-muted-foreground/40" />
         <h1 className="text-2xl font-semibold text-foreground">Page not found</h1>
         <p className="mt-2 text-muted-foreground">
-          The page you're looking for doesn't exist or has been moved.
+          The page you&apos;re looking for doesn&apos;t exist or has been moved.
         </p>
         <Button asChild className="mt-6">
           <Link href="/overview">Go to Overview</Link>
