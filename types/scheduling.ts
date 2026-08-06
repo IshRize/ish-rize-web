@@ -256,3 +256,68 @@ export interface TeachingLoadEntry {
   courseCount: number;
   venueCount: number;
 }
+
+export type OrgRole = 'OWNER' | 'ADMIN' | 'COORDINATOR' | 'MEMBER';
+export type MemberStatus = 'ACTIVE' | 'SUSPENDED';
+
+export interface OrgMember {
+  id: string;
+  userId: string;
+  organizationId: string;
+  role: OrgRole;
+  status: MemberStatus;
+  joinedAt: string;
+  user: {
+    id: string;
+    email: string;
+    firstName: string;
+    lastName: string;
+  };
+}
+
+export interface MemberProfile extends OrgMember {
+  scopedUnitIds: string[];
+  lastActiveAt: string | null;
+}
+
+export interface OrgInvitation {
+  id: string;
+  organizationId: string;
+  email: string;
+  role: OrgRole;
+  status: 'PENDING' | 'ACCEPTED' | 'REVOKED' | 'EXPIRED';
+  invitedBy: string;
+  createdAt: string;
+  expiresAt: string;
+}
+
+export interface InviteLink {
+  id: string;
+  organizationId: string;
+  token: string;
+  defaultRole: OrgRole;
+  enabled: boolean;
+  createdAt: string;
+}
+
+export interface AuditLogEntry {
+  id: string;
+  userId: string | null;
+  action: string;
+  targetType: string | null;
+  targetId: string | null;
+  metadata: Record<string, unknown> | null;
+  ipAddress: string | null;
+  createdAt: string;
+  user?: { firstName: string; lastName: string; email: string } | null;
+}
+
+export interface PaginatedResponse<T> {
+  items: T[];
+  pagination: {
+    page: number;
+    limit: number;
+    total: number;
+    totalPages: number;
+  };
+}

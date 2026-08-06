@@ -19,7 +19,7 @@ import { schedulingApi } from '@/lib/api';
 import { applyOrgAccentOverride } from '@/lib/orgTheme';
 import { useAuthStore } from '@/stores/authStore';
 import { useScheduleSelectionStore } from '@/stores/scheduleSelectionStore';
-import { Select } from '@/components/ui/Select';
+import { Select } from '@/components/ui/LegacySelect';
 
 interface AppHeaderProps {
   title: string;

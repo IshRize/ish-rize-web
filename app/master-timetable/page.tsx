@@ -24,7 +24,7 @@ import { useScheduleSelectionStore } from '@/stores/scheduleSelectionStore';
 import { AppHeader } from '@/components/layout/AppHeader';
 import { AppShell } from '@/components/layout/AppShell';
 import { MasterTimetableGrid } from '@/components/master-timetable/MasterTimetableGrid';
-import { Select } from '@/components/ui/Select';
+import { Select } from '@/components/ui/LegacySelect';
 
 const ALL_LEVELS = '';
 

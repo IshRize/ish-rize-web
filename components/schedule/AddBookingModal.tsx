@@ -14,7 +14,7 @@ import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { schedulingApi } from '@/lib/api';
 import { vocab } from '@/lib/vocab';
-import { Select } from '@/components/ui/Select';
+import { Select } from '@/components/ui/LegacySelect';
 import type { OrgConfig } from '@/types/scheduling';
 
 const NONE = '';
