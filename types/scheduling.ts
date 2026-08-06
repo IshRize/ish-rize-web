@@ -321,3 +321,75 @@ export interface PaginatedResponse<T> {
     totalPages: number;
   };
 }
+
+export type VenueType = 'LECTURE_HALL' | 'LAB' | 'SEMINAR_ROOM' | 'UNIT_ROOM' | 'ONLINE';
+
+export interface Venue {
+  id: string;
+  organizationId: string;
+  orgUnitId: string | null;
+  name: string;
+  capacity: number;
+  type: VenueType;
+  archived: boolean;
+  createdAt: string;
+}
+
+export interface Host {
+  id: string;
+  userId: string | null;
+  organizationId: string;
+  titleId: string | null;
+  orgUnitId: string;
+  name: string;
+  initials: string;
+  displayName: string;
+  archived: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface Course {
+  id: string;
+  code: string;
+  name: string;
+  description: string | null;
+  lecturerId: string;
+  kind: string;
+  orgUnitId: string | null;
+  level: number | null;
+  courseType: string;
+  expectedSize: number | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface Group {
+  id: string;
+  termId: string;
+  orgUnitId: string;
+  name: string;
+  createdAt: string;
+  courseLinks: { courseId: string; course?: { code: string; name: string } }[];
+  hostLinks: { hostId: string; courseId: string; host?: { displayName: string } }[];
+}
+
+export interface Calendar {
+  id: string;
+  organizationId: string;
+  label: string;
+  startDate: string;
+  endDate: string;
+  createdAt: string;
+  terms?: Term[];
+}
+
+export type TermType = 'SEMESTER' | 'TRIMESTER' | 'QUARTER' | 'TERM' | 'SEASON';
+
+export interface Title {
+  id: string;
+  organizationId: string;
+  abbreviation: string;
+  fullForm: string;
+  rank: number;
+}
