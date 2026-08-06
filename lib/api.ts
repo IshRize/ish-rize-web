@@ -55,6 +55,18 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
   return json.data as T;
 }
 
+async function requestUnauthenticated<T>(path: string, init?: RequestInit): Promise<T> {
+  const res = await fetch(`${PROXY_BASE}${path}`, {
+    ...init,
+    headers: { 'Content-Type': 'application/json', ...(init?.headers ?? {}) },
+  });
+  const json = await res.json().catch(() => null);
+  if (!res.ok || !json?.success) {
+    throw new Error(json?.message ?? `Request failed (${res.status})`);
+  }
+  return json.data as T;
+}
+
 export const authApi = {
   async login(email: string, password: string): Promise<{ user: User }> {
     const res = await fetch('/api/auth/login', {
@@ -78,6 +90,39 @@ export const authApi = {
     return request<void>('/auth/change-password', {
       method: 'PUT',
       body: JSON.stringify({ currentPassword, newPassword }),
+    });
+  },
+  async register(data: { name: string; email: string; password: string }): Promise<{ user: User }> {
+    const res = await fetch('/api/auth/register', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data),
+    });
+    const json = await res.json().catch(() => null);
+    if (!res.ok || !json?.success) {
+      throw new Error(json?.message ?? 'Registration failed');
+    }
+    return json.data;
+  },
+  verifyEmail(otp: string): Promise<void> {
+    return request<void>('/auth/verify-email', {
+      method: 'POST',
+      body: JSON.stringify({ otp }),
+    });
+  },
+  resendVerification(): Promise<void> {
+    return request<void>('/auth/resend-verification', { method: 'POST' });
+  },
+  forgotPassword(email: string): Promise<void> {
+    return requestUnauthenticated<void>('/auth/forgot-password', {
+      method: 'POST',
+      body: JSON.stringify({ email }),
+    });
+  },
+  resetPassword(data: { token: string; newPassword: string }): Promise<void> {
+    return requestUnauthenticated<void>('/auth/reset-password', {
+      method: 'POST',
+      body: JSON.stringify(data),
     });
   },
 };
