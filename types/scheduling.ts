@@ -393,3 +393,18 @@ export interface Title {
   fullForm: string;
   rank: number;
 }
+
+export interface Session {
+  id: string;
+  deviceInfo: string | null;
+  ipAddress: string | null;
+  lastUsedAt: string;
+  createdAt: string;
+  expiresAt: string;
+}
+
+export interface FeatureFlag {
+  key: string;
+  enabled: boolean;
+  description?: string;
+}

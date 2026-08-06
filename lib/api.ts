@@ -25,6 +25,7 @@ import type {
   DepartmentTimetableSlot,
   DraftBooking,
   DraftMasterSlot,
+  FeatureFlag,
   Group,
   GroupSummary,
   Host,
@@ -44,6 +45,7 @@ import type {
   Organization,
   PaginatedResponse,
   ScheduleResponse,
+  Session,
   SubjectDepartmentMapping,
   TeachingLoadEntry,
   Term,
@@ -138,6 +140,12 @@ export const authApi = {
       method: 'POST',
       body: JSON.stringify(data),
     });
+  },
+  listSessions(): Promise<{ sessions: Session[] }> {
+    return request<{ sessions: Session[] }>('/auth/sessions');
+  },
+  revokeSession(sessionId: string): Promise<void> {
+    return request<void>(`/auth/sessions/${sessionId}`, { method: 'DELETE' });
   },
 };
 
@@ -441,6 +449,15 @@ export const orgApi = {
   },
   deleteTimeSlot(orgId: string, slotId: string): Promise<void> {
     return request<void>(`/organizations/${orgId}/time-slots/${slotId}`, { method: 'DELETE' });
+  },
+  listFeatureFlags(orgId: string): Promise<FeatureFlag[]> {
+    return request<FeatureFlag[]>(`/organizations/${orgId}/feature-flags`);
+  },
+  toggleFeatureFlag(orgId: string, key: string, enabled: boolean): Promise<FeatureFlag> {
+    return request<FeatureFlag>(`/organizations/${orgId}/feature-flags/${key}`, {
+      method: 'PATCH',
+      body: JSON.stringify({ enabled }),
+    });
   },
 };
 
