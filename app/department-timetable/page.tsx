@@ -26,7 +26,7 @@ import { DecomposeMasterSlotModal } from '@/components/department-timetable/Deco
 import { DepartmentScheduleGrid } from '@/components/department-timetable/DepartmentScheduleGrid';
 import { ImportDepartmentTimetableModal } from '@/components/department-timetable/ImportDepartmentTimetableModal';
 import { ClashBadge } from '@/components/schedule/ClashBadge';
-import { Select } from '@/components/ui/Select';
+import { Select } from '@/components/ui/LegacySelect';
 import { dayLabel } from '@/lib/dayNames';
 import type { Clash, DepartmentTimetableSlot, HostSummary } from '@/types/scheduling';
 

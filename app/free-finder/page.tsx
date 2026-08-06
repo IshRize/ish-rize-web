@@ -20,7 +20,7 @@ import { useAuthStore } from '@/stores/authStore';
 import { useScheduleSelectionStore } from '@/stores/scheduleSelectionStore';
 import { AppHeader } from '@/components/layout/AppHeader';
 import { AppShell } from '@/components/layout/AppShell';
-import { Select } from '@/components/ui/Select';
+import { Select } from '@/components/ui/LegacySelect';
 import { dayLabel } from '@/lib/dayNames';
 import type { TimeSlot } from '@/types/scheduling';
 

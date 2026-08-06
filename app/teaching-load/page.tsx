@@ -20,7 +20,7 @@ import { useAuthStore } from '@/stores/authStore';
 import { useScheduleSelectionStore } from '@/stores/scheduleSelectionStore';
 import { AppHeader } from '@/components/layout/AppHeader';
 import { AppShell } from '@/components/layout/AppShell';
-import { Select } from '@/components/ui/Select';
+import { Select } from '@/components/ui/LegacySelect';
 
 function formatHours(minutes: number): string {
   const hours = minutes / 60;

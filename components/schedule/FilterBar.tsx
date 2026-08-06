@@ -9,7 +9,7 @@
  */
 'use client';
 
-import { Select } from '@/components/ui/Select';
+import { Select } from '@/components/ui/LegacySelect';
 import { vocab } from '@/lib/vocab';
 import type { Booking, OrgConfig, OrgUnit } from '@/types/scheduling';
 

@@ -23,7 +23,7 @@
 import { useEffect, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { schedulingApi } from '@/lib/api';
-import { Select } from '@/components/ui/Select';
+import { Select } from '@/components/ui/LegacySelect';
 import { dayLabel } from '@/lib/dayNames';
 import { parseCourseCode } from '@/lib/courseCode';
 import type { DepartmentTimetableSlot } from '@/types/scheduling';

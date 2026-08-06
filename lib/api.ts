@@ -14,6 +14,7 @@
  */
 import type {
   ActivitySummary,
+  AuditLogEntry,
   Booking,
   BookingIngestionCommitResult,
   BookingIngestionResult,
@@ -24,14 +25,20 @@ import type {
   DraftMasterSlot,
   GroupSummary,
   HostSummary,
+  InviteLink,
   MasterSlotCommitResult,
   MasterSlotIngestionResult,
   MasterSlotRow,
+  MemberProfile,
   MyHost,
   MyTeachingLoad,
   OrgConfig,
+  OrgInvitation,
+  OrgMember,
+  OrgRole,
   OrgUnit,
   Organization,
+  PaginatedResponse,
   ScheduleResponse,
   SubjectDepartmentMapping,
   TeachingLoadEntry,
@@ -243,6 +250,103 @@ export const schedulingApi = {
   },
   autoRescheduleBooking(bookingId: string): Promise<Booking> {
     return request<Booking>(`/bookings/${bookingId}/auto-reschedule`, { method: 'POST' });
+  },
+};
+
+export const orgApi = {
+  createOrganization(data: { name: string; orgType: string; description?: string }): Promise<Organization> {
+    return request<Organization>('/organizations', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  },
+  getOrganization(orgId: string): Promise<Organization> {
+    return request<Organization>(`/organizations/${orgId}`);
+  },
+  updateOrganization(orgId: string, data: { name?: string; contactEmail?: string }): Promise<Organization> {
+    return request<Organization>(`/organizations/${orgId}`, {
+      method: 'PATCH',
+      body: JSON.stringify(data),
+    });
+  },
+  listMembers(orgId: string, params?: { page?: number; limit?: number; search?: string; role?: OrgRole; status?: string }): Promise<PaginatedResponse<OrgMember>> {
+    const q = new URLSearchParams();
+    if (params?.page) q.set('page', String(params.page));
+    if (params?.limit) q.set('limit', String(params.limit));
+    if (params?.search) q.set('search', params.search);
+    if (params?.role) q.set('role', params.role);
+    if (params?.status) q.set('status', params.status);
+    const qs = q.toString();
+    return request<PaginatedResponse<OrgMember>>(`/organizations/${orgId}/members${qs ? `?${qs}` : ''}`);
+  },
+  getMemberProfile(orgId: string, memberId: string): Promise<MemberProfile> {
+    return request<MemberProfile>(`/organizations/${orgId}/members/${memberId}/profile`);
+  },
+  updateMemberRole(orgId: string, memberId: string, role: OrgRole): Promise<OrgMember> {
+    return request<OrgMember>(`/organizations/${orgId}/members/${memberId}`, {
+      method: 'PATCH',
+      body: JSON.stringify({ role }),
+    });
+  },
+  removeMember(orgId: string, memberId: string): Promise<void> {
+    return request<void>(`/organizations/${orgId}/members/${memberId}`, { method: 'DELETE' });
+  },
+  suspendMember(orgId: string, memberId: string): Promise<void> {
+    return request<void>(`/organizations/${orgId}/members/${memberId}/suspend`, { method: 'POST' });
+  },
+  unsuspendMember(orgId: string, memberId: string): Promise<void> {
+    return request<void>(`/organizations/${orgId}/members/${memberId}/unsuspend`, { method: 'POST' });
+  },
+  sendInvitations(orgId: string, data: { emails: string[]; role: OrgRole }): Promise<OrgInvitation[]> {
+    return request<OrgInvitation[]>(`/organizations/${orgId}/invitations`, {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  },
+  listInvitations(orgId: string): Promise<OrgInvitation[]> {
+    return request<OrgInvitation[]>(`/organizations/${orgId}/invitations`);
+  },
+  revokeInvitation(orgId: string, inviteId: string): Promise<void> {
+    return request<void>(`/organizations/${orgId}/invitations/${inviteId}`, { method: 'DELETE' });
+  },
+  createInviteLink(orgId: string, defaultRole: OrgRole): Promise<InviteLink> {
+    return request<InviteLink>(`/organizations/${orgId}/invite-link`, {
+      method: 'POST',
+      body: JSON.stringify({ defaultRole }),
+    });
+  },
+  disableInviteLink(orgId: string): Promise<void> {
+    return request<void>(`/organizations/${orgId}/invite-link`, { method: 'DELETE' });
+  },
+  getAuditLog(orgId: string, params?: { page?: number; limit?: number; action?: string; userId?: string }): Promise<PaginatedResponse<AuditLogEntry>> {
+    const q = new URLSearchParams();
+    if (params?.page) q.set('page', String(params.page));
+    if (params?.limit) q.set('limit', String(params.limit));
+    if (params?.action) q.set('action', params.action);
+    if (params?.userId) q.set('userId', params.userId);
+    const qs = q.toString();
+    return request<PaginatedResponse<AuditLogEntry>>(`/organizations/${orgId}/audit-log${qs ? `?${qs}` : ''}`);
+  },
+  deactivateOrganization(orgId: string): Promise<void> {
+    return request<void>(`/organizations/${orgId}/deactivate`, { method: 'POST' });
+  },
+  reactivateOrganization(orgId: string): Promise<void> {
+    return request<void>(`/organizations/${orgId}/reactivate`, { method: 'POST' });
+  },
+  requestDeletion(orgId: string, password: string): Promise<void> {
+    return request<void>(`/organizations/${orgId}/request-deletion`, {
+      method: 'POST',
+      body: JSON.stringify({ password }),
+    });
+  },
+  cancelDeletion(orgId: string): Promise<void> {
+    return request<void>(`/organizations/${orgId}/cancel-deletion`, { method: 'POST' });
+  },
+  transferOwnership(orgId: string, data: { targetUserId: string; password: string }): Promise<void> {
+    return request<void>(`/organizations/${orgId}/transfer-ownership`, {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
   },
 };
 
