@@ -1,27 +1,20 @@
-/**
- * Module: Login page
- * Layer:  web-page (client)
- * Context: See COPILOT_CONTEXT.md; UI/UX redesign Phase 4
- *
- * Purpose: Authenticate against the backend via the httpOnly-cookie login route,
- *          then redirect to the schedule grid. Icon-prefixed inputs, a
- *          show/hide password toggle, and an error banner all mirror the
- *          mobile app's LoginScreen (icon names, the error-banner's tinted
- *          background using the existing --bg-clash/--fg-clash tokens) --
- *          the mobile app has no self-registration/forgot-password flow for
- *          this app's roles either, so neither is added here.
- */
 'use client';
 
 import { useState, type FormEvent } from 'react';
 import { useRouter } from 'next/navigation';
+import Link from 'next/link';
+import { Loader2, Mail, Lock, Eye, EyeOff, AlertCircle } from 'lucide-react';
 import { useAuthStore } from '@/stores/authStore';
-import { Icons } from '@/lib/icons';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 
 export default function LoginPage() {
   const router = useRouter();
   const { login, isLoading, error, clearError } = useAuthStore();
-  const [email, setEmail] = useState('demo.lecturer@ug.edu.gh');
+  const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
 
@@ -32,77 +25,98 @@ export default function LoginPage() {
       await login(email, password);
       router.push('/schedule');
     } catch {
-      // error is already set on the store
+      // error is set on the store
     }
   }
 
   return (
-    <main className="flex min-h-screen items-center justify-center bg-[var(--bg-primary)] px-4 py-10">
+    <main className="flex min-h-screen items-center justify-center bg-background px-4 py-10">
       <div className="w-full max-w-sm">
         <div className="mb-6 text-center">
-          <h1 className="text-3xl font-bold tracking-tight text-[var(--fg-primary)]">IshRize</h1>
-          <p className="mt-1 text-sm text-[var(--fg-muted)]">Sign in to view the master schedule.</p>
+          <h1 className="text-3xl font-bold tracking-tight text-foreground">IshRize</h1>
+          <p className="mt-1 text-sm text-muted-foreground">
+            Sign in to your scheduling dashboard.
+          </p>
         </div>
 
-        <form
-          onSubmit={handleSubmit}
-          className="space-y-4 rounded-lg border border-[var(--border-default)] bg-[var(--bg-secondary)] p-6"
-        >
-          <h2 className="text-base font-semibold text-[var(--fg-primary)]">Sign In</h2>
+        <Card>
+          <CardHeader className="pb-4">
+            <CardTitle className="text-lg">Sign in</CardTitle>
+            <CardDescription>Enter your credentials to continue</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <form onSubmit={handleSubmit} className="space-y-4">
+              {error && (
+                <Alert variant="destructive">
+                  <AlertCircle className="h-4 w-4" />
+                  <AlertDescription>{error}</AlertDescription>
+                </Alert>
+              )}
 
-          {error && (
-            <div className="flex items-start gap-2 rounded-md border border-[var(--fg-clash)]/30 bg-[var(--bg-clash)] px-3 py-2">
-              <Icons.alertCircle size={18} className="mt-0.5 shrink-0 text-[var(--fg-clash)]" />
-              <p className="text-sm text-[var(--fg-clash)]">{error}</p>
-            </div>
-          )}
+              <div className="space-y-2">
+                <Label htmlFor="email">Email</Label>
+                <div className="relative">
+                  <Mail className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                  <Input
+                    id="email"
+                    type="email"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    required
+                    autoComplete="email"
+                    placeholder="you@example.com"
+                    className="pl-9"
+                  />
+                </div>
+              </div>
 
-          <label className="flex flex-col gap-1 text-xs text-[var(--fg-muted)]">
-            Email
-            <div className="relative">
-              <Icons.email size={18} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-[var(--fg-muted)]" />
-              <input
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                required
-                autoComplete="email"
-                className="w-full rounded-md border border-[var(--border-default)] bg-[var(--bg-primary)] py-2 pl-9 pr-3 text-sm text-[var(--fg-primary)]"
-              />
-            </div>
-          </label>
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <Label htmlFor="password">Password</Label>
+                  <Link
+                    href="/forgot-password"
+                    className="text-xs text-muted-foreground hover:text-foreground"
+                  >
+                    Forgot password?
+                  </Link>
+                </div>
+                <div className="relative">
+                  <Lock className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                  <Input
+                    id="password"
+                    type={showPassword ? 'text' : 'password'}
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    required
+                    autoComplete="current-password"
+                    placeholder="Enter your password"
+                    className="pl-9 pr-9"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword((v) => !v)}
+                    aria-label={showPassword ? 'Hide password' : 'Show password'}
+                    className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                  >
+                    {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                  </button>
+                </div>
+              </div>
 
-          <label className="flex flex-col gap-1 text-xs text-[var(--fg-muted)]">
-            Password
-            <div className="relative">
-              <Icons.lock size={18} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-[var(--fg-muted)]" />
-              <input
-                type={showPassword ? 'text' : 'password'}
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                required
-                autoComplete="current-password"
-                className="w-full rounded-md border border-[var(--border-default)] bg-[var(--bg-primary)] py-2 pl-9 pr-9 text-sm text-[var(--fg-primary)]"
-              />
-              <button
-                type="button"
-                onClick={() => setShowPassword((v) => !v)}
-                aria-label={showPassword ? 'Hide password' : 'Show password'}
-                className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[var(--fg-muted)] hover:text-[var(--fg-primary)]"
-              >
-                {showPassword ? <Icons.eyeOff size={18} /> : <Icons.eye size={18} />}
-              </button>
-            </div>
-          </label>
+              <Button type="submit" className="w-full" disabled={isLoading}>
+                {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                {isLoading ? 'Signing in...' : 'Sign in'}
+              </Button>
+            </form>
 
-          <button
-            type="submit"
-            disabled={isLoading}
-            className="w-full rounded-md bg-[var(--accent-primary)] px-3 py-2 text-sm font-medium text-[var(--fg-on-accent-primary)] hover:bg-[var(--accent-primary-hover)] disabled:opacity-60"
-          >
-            {isLoading ? 'Signing in…' : 'Sign in'}
-          </button>
-        </form>
+            <p className="mt-4 text-center text-sm text-muted-foreground">
+              Don&apos;t have an account?{' '}
+              <Link href="/signup" className="font-medium text-primary hover:underline">
+                Sign up
+              </Link>
+            </p>
+          </CardContent>
+        </Card>
       </div>
     </main>
   );

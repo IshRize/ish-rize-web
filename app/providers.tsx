@@ -1,15 +1,9 @@
-/**
- * Module: Providers
- * Layer:  web-component (client)
- * Context: See COPILOT_CONTEXT.md
- *
- * Purpose: Root client providers — TanStack Query only for now. Kept separate
- *          from layout.tsx so the root layout can stay a server component.
- */
 'use client';
 
 import { useState } from 'react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { TooltipProvider } from '@/components/ui/tooltip';
+import { Toaster } from '@/components/ui/sonner';
 
 export function Providers({ children }: { children: React.ReactNode }) {
   const [client] = useState(
@@ -18,5 +12,12 @@ export function Providers({ children }: { children: React.ReactNode }) {
         defaultOptions: { queries: { staleTime: 30_000, retry: 1 } },
       }),
   );
-  return <QueryClientProvider client={client}>{children}</QueryClientProvider>;
+  return (
+    <QueryClientProvider client={client}>
+      <TooltipProvider>
+        {children}
+        <Toaster position="bottom-right" richColors closeButton />
+      </TooltipProvider>
+    </QueryClientProvider>
+  );
 }
