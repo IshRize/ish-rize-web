@@ -1,159 +1,284 @@
-/**
- * Module: Sidebar
- * Layer:  web-component (client)
- * Context: See COPILOT_CONTEXT.md; UI/UX redesign Phase 2
- *
- * Purpose: Replaces AppHeader's horizontal nav bar (plus the theme toggle and
- *          sign-out buttons that used to sit next to it) with a single
- *          responsive sidebar:
- *            - desktop (lg+):  persistent rail, icon + label
- *            - tablet (md-lg): persistent rail, icon only
- *            - mobile (<md):   hidden; a hamburger button opens an overlay
- *                               drawer with icon + label (always labelled,
- *                               since there's no rail width constraint there)
- */
 'use client';
 
 import { useState } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
+import {
+  LayoutDashboard,
+  CalendarDays,
+  AlertTriangle,
+  Search,
+  Upload,
+  Users,
+  Network,
+  MapPin,
+  BookOpen,
+  Layers,
+  Calendar,
+  Settings,
+  ScrollText,
+  UserCircle,
+  Sun,
+  Moon,
+  LogOut,
+  Menu,
+  X,
+  ChevronLeft,
+  ChevronRight,
+  type LucideIcon,
+} from 'lucide-react';
 import { useAuthStore } from '@/stores/authStore';
-import { useIsCoordinator } from '@/hooks/useIsCoordinator';
-import { ThemeToggle } from '@/components/ui/ThemeToggle';
-import { Icons, type IconProps } from '@/lib/icons';
+import { cn } from '@/lib/utils';
+import { Button } from '@/components/ui/button';
+import { Separator } from '@/components/ui/separator';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 
-type IconComponent = (props: IconProps) => React.ReactElement;
+const STORAGE_KEY = 'ishrize_web_theme';
+const SIDEBAR_KEY = 'ishrize_sidebar_collapsed';
 
-interface NavLink {
+type ThemeChoice = 'light' | 'dark';
+
+interface NavItem {
   href: string;
   label: string;
-  icon: IconComponent;
+  icon: LucideIcon;
 }
 
-const NAV_LINKS: NavLink[] = [
-  { href: '/schedule', label: 'Schedule', icon: Icons.schedule },
-  { href: '/clashes', label: 'Clashes', icon: Icons.clashes },
-  { href: '/free-finder', label: 'Free finder', icon: Icons.freeFinder },
-];
+interface NavGroup {
+  label?: string;
+  items: NavItem[];
+}
 
-// The master file is the coarse, pre-decomposition import -- only someone
-// who actually has to decompose a slice of it (a coordinator) or an ADMIN
-// needs to see it; shown separately from NAV_LINKS so it can be filtered by
-// useIsCoordinator() rather than role alone.
-const MASTER_TIMETABLE_LINK: NavLink = {
-  href: '/master-timetable',
-  label: 'Master Timetable',
-  icon: Icons.masterTimetable,
+const SCHEDULING_NAV: NavGroup = {
+  items: [
+    { href: '/overview', label: 'Overview', icon: LayoutDashboard },
+    { href: '/schedule', label: 'Schedule', icon: CalendarDays },
+    { href: '/clashes', label: 'Clashes', icon: AlertTriangle },
+    { href: '/free-finder', label: 'Free Finder', icon: Search },
+    { href: '/ingestion', label: 'Ingestion', icon: Upload },
+  ],
 };
 
-// Visible to any LECTURER (not just ones who currently coordinate a
-// department, or who's currently assigned to teach anything) since both are
-// scoped/assigned states that can change at any time; each page shows its
-// own empty state otherwise.
-const LECTURER_NAV_LINKS: NavLink[] = [
-  { href: '/my-timetable', label: 'My Timetable', icon: Icons.myTimetable },
-  { href: '/department-timetable', label: 'Department', icon: Icons.department },
-  { href: '/teaching-load', label: 'Teaching Load', icon: Icons.teachingLoad },
-];
+const MANAGE_NAV: NavGroup = {
+  label: 'MANAGE',
+  items: [
+    { href: '/people', label: 'People', icon: Users },
+    { href: '/structure', label: 'Structure', icon: Network },
+    { href: '/venues', label: 'Venues', icon: MapPin },
+    { href: '/activities', label: 'Activities', icon: BookOpen },
+    { href: '/groups', label: 'Groups', icon: Layers },
+    { href: '/calendar', label: 'Calendar', icon: Calendar },
+  ],
+};
 
-// Department management, coordinator assignment, and master timetable
-// ingestion are all ADMIN-only on the backend (the "academic affairs"
-// function is just an ADMIN doing this work, not a separate role) -- hide
-// these links rather than send other roles to a 403.
-const ADMIN_NAV_LINKS: NavLink[] = [
-  { href: '/ingestion', label: 'Ingestion', icon: Icons.ingestion },
-  { href: '/admin', label: 'Admin', icon: Icons.admin },
-];
+const ADMIN_NAV: NavGroup = {
+  label: 'ADMIN',
+  items: [
+    { href: '/settings', label: 'Settings', icon: Settings },
+    { href: '/audit', label: 'Audit Log', icon: ScrollText },
+  ],
+};
 
-function NavItem({
-  link,
+function NavLink({
+  item,
   active,
-  labelClassName,
-  onNavigate,
+  collapsed,
+  onClick,
 }: {
-  link: NavLink;
+  item: NavItem;
   active: boolean;
-  labelClassName: string;
-  onNavigate?: () => void;
+  collapsed: boolean;
+  onClick?: () => void;
 }) {
-  const Icon = link.icon;
-  return (
+  const Icon = item.icon;
+
+  const link = (
     <Link
-      href={link.href}
-      onClick={onNavigate}
-      title={link.label}
-      className={`flex items-center gap-3 rounded-md px-3 py-2 text-sm ${
+      href={item.href}
+      onClick={onClick}
+      aria-current={active ? 'page' : undefined}
+      className={cn(
+        'flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition-colors',
         active
-          ? 'bg-[var(--accent-primary)] text-[var(--fg-on-accent-primary)]'
-          : 'text-[var(--fg-muted)] hover:bg-[var(--bg-secondary)] hover:text-[var(--fg-primary)]'
-      }`}
+          ? 'bg-primary/10 text-primary'
+          : 'text-muted-foreground hover:bg-accent hover:text-foreground',
+        collapsed && 'justify-center px-2',
+      )}
     >
       <Icon size={20} className="shrink-0" />
-      <span className={labelClassName}>{link.label}</span>
+      {!collapsed && <span>{item.label}</span>}
     </Link>
   );
+
+  if (collapsed) {
+    return (
+      <Tooltip>
+        <TooltipTrigger asChild>{link}</TooltipTrigger>
+        <TooltipContent side="right">{item.label}</TooltipContent>
+      </Tooltip>
+    );
+  }
+
+  return link;
+}
+
+function NavSection({
+  group,
+  pathname,
+  collapsed,
+  onClick,
+}: {
+  group: NavGroup;
+  pathname: string;
+  collapsed: boolean;
+  onClick?: () => void;
+}) {
+  return (
+    <div className="space-y-1">
+      {group.label && !collapsed && (
+        <p className="mb-1 px-3 text-xs font-semibold uppercase tracking-wider text-muted-foreground/60">
+          {group.label}
+        </p>
+      )}
+      {group.label && collapsed && <Separator className="mx-2 my-1" />}
+      {group.items.map((item) => (
+        <NavLink
+          key={item.href}
+          item={item}
+          active={pathname === item.href || pathname.startsWith(item.href + '/')}
+          collapsed={collapsed}
+          onClick={onClick}
+        />
+      ))}
+    </div>
+  );
+}
+
+function ThemeButton({ collapsed }: { collapsed: boolean }) {
+  const [theme, setTheme] = useState<ThemeChoice>(() => {
+    if (typeof window === 'undefined') return 'light';
+    const stored = localStorage.getItem(STORAGE_KEY) as ThemeChoice | null;
+    return stored ?? (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+  });
+
+  function toggle() {
+    const next: ThemeChoice = theme === 'dark' ? 'light' : 'dark';
+    setTheme(next);
+    localStorage.setItem(STORAGE_KEY, next);
+    document.documentElement.setAttribute('data-theme', next === 'dark' ? 'dark' : '');
+  }
+
+  const Icon = theme === 'dark' ? Moon : Sun;
+  const label = theme === 'dark' ? 'Dark theme' : 'Light theme';
+
+  const btn = (
+    <button
+      type="button"
+      onClick={toggle}
+      aria-label={theme === 'dark' ? 'Switch to light theme' : 'Switch to dark theme'}
+      className={cn(
+        'flex w-full items-center gap-3 rounded-md px-3 py-2 text-sm text-muted-foreground hover:bg-accent hover:text-foreground',
+        collapsed && 'justify-center px-2',
+      )}
+    >
+      <Icon size={20} className="shrink-0" />
+      {!collapsed && <span>{label}</span>}
+    </button>
+  );
+
+  if (collapsed) {
+    return (
+      <Tooltip>
+        <TooltipTrigger asChild>{btn}</TooltipTrigger>
+        <TooltipContent side="right">{label}</TooltipContent>
+      </Tooltip>
+    );
+  }
+
+  return btn;
 }
 
 export function Sidebar() {
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [collapsed, setCollapsed] = useState(() => {
+    if (typeof window === 'undefined') return false;
+    return localStorage.getItem(SIDEBAR_KEY) === 'true';
+  });
   const pathname = usePathname();
   const router = useRouter();
   const { user, logout } = useAuthStore();
-  const { isCoordinator } = useIsCoordinator();
 
   const isAdmin = user?.role === 'ADMIN';
-  const isLecturerEligible = user?.role === 'LECTURER' || isAdmin;
-  const navLinks: NavLink[] = [
-    NAV_LINKS[0],
-    ...(isCoordinator ? [MASTER_TIMETABLE_LINK] : []),
-    ...NAV_LINKS.slice(1),
-    ...(isLecturerEligible ? LECTURER_NAV_LINKS : []),
-    ...(isAdmin ? ADMIN_NAV_LINKS : []),
-  ];
+  const isCoordinatorOrAbove = user?.role === 'ADMIN' || user?.role === 'LECTURER';
 
-  function close(): void {
-    setMobileOpen(false);
+  function toggleCollapse() {
+    const next = !collapsed;
+    setCollapsed(next);
+    localStorage.setItem(SIDEBAR_KEY, String(next));
   }
 
-  async function handleLogout(): Promise<void> {
+  async function handleLogout() {
     await logout();
     router.push('/login');
   }
 
-  function renderContent(labelClassName: string, onNavigate?: () => void): React.ReactElement {
+  function renderNav(isCollapsed: boolean, onNavigate?: () => void) {
     return (
       <>
-        <div className="flex items-center px-3 py-4">
-          <span className={`text-lg font-semibold text-[var(--fg-primary)] ${labelClassName}`}>IshRize</span>
+        {/* Header */}
+        <div className={cn('flex items-center border-b border-border px-3 py-4', isCollapsed && 'justify-center px-2')}>
+          {!isCollapsed && (
+            <span className="text-lg font-bold tracking-tight text-foreground">IshRize</span>
+          )}
+          {isCollapsed && (
+            <span className="text-lg font-bold text-foreground">IR</span>
+          )}
         </div>
-        <nav className="flex-1 space-y-1 overflow-y-auto px-2">
-          {navLinks.map((link) => (
-            <NavItem
-              key={link.href}
-              link={link}
-              active={pathname === link.href}
-              labelClassName={labelClassName}
-              onNavigate={onNavigate}
-            />
-          ))}
+
+        {/* Main nav */}
+        <nav className="flex-1 space-y-4 overflow-y-auto px-2 py-3">
+          <NavSection group={SCHEDULING_NAV} pathname={pathname} collapsed={isCollapsed} onClick={onNavigate} />
+          {isCoordinatorOrAbove && (
+            <NavSection group={MANAGE_NAV} pathname={pathname} collapsed={isCollapsed} onClick={onNavigate} />
+          )}
+          {isAdmin && (
+            <NavSection group={ADMIN_NAV} pathname={pathname} collapsed={isCollapsed} onClick={onNavigate} />
+          )}
         </nav>
-        <div className="space-y-1 border-t border-[var(--border-default)] px-2 py-2">
-          <NavItem
-            link={{ href: '/profile', label: 'Profile', icon: Icons.profile }}
-            active={pathname === '/profile'}
-            labelClassName={labelClassName}
-            onNavigate={onNavigate}
+
+        {/* Bottom section */}
+        <div className="space-y-1 border-t border-border px-2 py-2">
+          <NavLink
+            item={{ href: '/account/profile', label: 'Account', icon: UserCircle }}
+            active={pathname.startsWith('/account')}
+            collapsed={isCollapsed}
+            onClick={onNavigate}
           />
-          <ThemeToggle variant="row" labelClassName={labelClassName} />
-          <button
-            type="button"
-            onClick={handleLogout}
-            title="Sign out"
-            className="flex w-full items-center gap-3 rounded-md px-3 py-2 text-sm text-[var(--fg-muted)] hover:bg-[var(--bg-secondary)] hover:text-[var(--fg-primary)]"
-          >
-            <Icons.logout size={20} className="shrink-0" />
-            <span className={labelClassName}>Sign out</span>
-          </button>
+          <ThemeButton collapsed={isCollapsed} />
+          {(() => {
+            const logoutBtn = (
+              <button
+                type="button"
+                onClick={handleLogout}
+                className={cn(
+                  'flex w-full items-center gap-3 rounded-md px-3 py-2 text-sm text-muted-foreground hover:bg-accent hover:text-foreground',
+                  isCollapsed && 'justify-center px-2',
+                )}
+              >
+                <LogOut size={20} className="shrink-0" />
+                {!isCollapsed && <span>Sign out</span>}
+              </button>
+            );
+            if (isCollapsed) {
+              return (
+                <Tooltip>
+                  <TooltipTrigger asChild>{logoutBtn}</TooltipTrigger>
+                  <TooltipContent side="right">Sign out</TooltipContent>
+                </Tooltip>
+              );
+            }
+            return logoutBtn;
+          })()}
         </div>
       </>
     );
@@ -161,32 +286,50 @@ export function Sidebar() {
 
   return (
     <>
-      <button
-        type="button"
+      {/* Mobile hamburger */}
+      <Button
+        variant="outline"
+        size="icon"
         onClick={() => setMobileOpen(true)}
         aria-label="Open navigation menu"
-        className="fixed left-4 top-4 z-30 rounded-md border border-[var(--border-default)] bg-[var(--bg-alternate)] p-2 text-[var(--fg-primary)] md:hidden"
+        className="fixed left-4 top-4 z-30 md:hidden"
       >
-        <Icons.menu size={20} />
-      </button>
+        <Menu size={20} />
+      </Button>
 
-      <aside className="sticky top-0 hidden h-screen w-16 shrink-0 flex-col border-r border-[var(--border-default)] bg-[var(--bg-alternate)] md:flex lg:w-56">
-        {renderContent('hidden lg:inline')}
+      {/* Desktop sidebar */}
+      <aside
+        className={cn(
+          'sticky top-0 hidden h-screen shrink-0 flex-col border-r border-border bg-card md:flex transition-[width] duration-200 ease-in-out',
+          collapsed ? 'w-16' : 'w-60',
+        )}
+      >
+        {renderNav(collapsed)}
+        <button
+          type="button"
+          onClick={toggleCollapse}
+          aria-label={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+          className="absolute -right-3 top-20 z-10 flex h-6 w-6 items-center justify-center rounded-full border border-border bg-card text-muted-foreground shadow-sm hover:text-foreground"
+        >
+          {collapsed ? <ChevronRight size={14} /> : <ChevronLeft size={14} />}
+        </button>
       </aside>
 
+      {/* Mobile drawer */}
       {mobileOpen && (
         <div className="fixed inset-0 z-40 flex md:hidden">
-          <div className="absolute inset-0 bg-black/50" onClick={close} aria-hidden="true" />
-          <aside className="relative flex h-full w-64 flex-col bg-[var(--bg-alternate)]">
-            <button
-              type="button"
-              onClick={close}
+          <div className="absolute inset-0 bg-black/50" onClick={() => setMobileOpen(false)} aria-hidden="true" />
+          <aside className="relative flex h-full w-64 flex-col bg-card">
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => setMobileOpen(false)}
               aria-label="Close navigation menu"
-              className="absolute right-3 top-4 rounded-md p-1 text-[var(--fg-muted)] hover:text-[var(--fg-primary)]"
+              className="absolute right-2 top-3 z-10"
             >
-              <Icons.close size={20} />
-            </button>
-            {renderContent('inline', close)}
+              <X size={20} />
+            </Button>
+            {renderNav(false, () => setMobileOpen(false))}
           </aside>
         </div>
       )}

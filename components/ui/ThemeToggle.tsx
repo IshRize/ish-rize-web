@@ -1,22 +1,7 @@
-/**
- * Module: ThemeToggle
- * Layer:  web-component (client)
- * Context: See COPILOT_CONTEXT.md
- *
- * Purpose: Light/dark toggle. Defaults to the OS's prefers-color-scheme; a
- *          manual choice is persisted to localStorage and wins over the system
- *          setting from then on. Toggling sets data-theme="dark"|"" on <html>,
- *          which swaps every CSS variable in globals.css instantly — no reload.
- *
- *          Two render variants: a compact icon-only button, and a full-width
- *          "row" matching the sidebar's nav-item style (icon + label, with
- *          the label's visibility controlled by the caller so it can hide
- *          on the sidebar's tablet icon-rail).
- */
 'use client';
 
 import { useEffect, useState } from 'react';
-import { Icons } from '@/lib/icons';
+import { Sun, Moon } from 'lucide-react';
 
 const STORAGE_KEY = 'ishrize_web_theme';
 type ThemeChoice = 'light' | 'dark';
@@ -40,8 +25,6 @@ export function ThemeToggle({ variant = 'icon', labelClassName }: ThemeTogglePro
     setTheme(initial);
     applyTheme(initial);
 
-    // Only follow live system-preference changes when the user hasn't made an
-    // explicit choice — a manual override always wins.
     if (stored) return;
     const handleChange = (e: MediaQueryListEvent): void => {
       const next: ThemeChoice = e.matches ? 'dark' : 'light';
@@ -59,9 +42,7 @@ export function ThemeToggle({ variant = 'icon', labelClassName }: ThemeTogglePro
     applyTheme(next);
   }
 
-  // Icon depicts the CURRENTLY active theme (sun while light, moon while
-  // dark) -- same convention the mobile app's theme menu item already uses.
-  const Icon = theme === 'dark' ? Icons.moon : Icons.sun;
+  const Icon = theme === 'dark' ? Moon : Sun;
   const label = theme === 'dark' ? 'Dark theme' : 'Light theme';
   const ariaLabel = theme === 'dark' ? 'Switch to light theme' : 'Switch to dark theme';
 
@@ -72,7 +53,7 @@ export function ThemeToggle({ variant = 'icon', labelClassName }: ThemeTogglePro
         onClick={toggle}
         aria-label={ariaLabel}
         title={label}
-        className="flex w-full items-center gap-3 rounded-md px-3 py-2 text-sm text-[var(--fg-muted)] hover:bg-[var(--bg-alternate)] hover:text-[var(--fg-primary)]"
+        className="flex w-full items-center gap-3 rounded-md px-3 py-2 text-sm text-muted-foreground hover:bg-accent hover:text-foreground"
       >
         <Icon size={20} className="shrink-0" />
         <span className={labelClassName}>{label}</span>
@@ -86,7 +67,7 @@ export function ThemeToggle({ variant = 'icon', labelClassName }: ThemeTogglePro
       onClick={toggle}
       aria-label={ariaLabel}
       title={label}
-      className="rounded-md border border-[var(--border-default)] p-2 text-[var(--fg-muted)] hover:text-[var(--fg-primary)]"
+      className="rounded-md border border-border p-2 text-muted-foreground hover:text-foreground"
     >
       <Icon size={18} />
     </button>
