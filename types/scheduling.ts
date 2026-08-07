@@ -409,3 +409,28 @@ export interface FeatureFlag {
   enabled: boolean;
   description?: string;
 }
+
+export type BookingRequestStatus = 'PENDING' | 'APPROVED' | 'REJECTED';
+
+export interface BookingRequest {
+  id: string;
+  organizationId: string;
+  termId: string;
+  groupId: string;
+  courseId: string;
+  timeSlotId: string;
+  venueId: string | null;
+  requestedById: string;
+  reviewedById: string | null;
+  status: BookingRequestStatus;
+  reason: string | null;
+  reviewNote: string | null;
+  createdAt: string;
+  reviewedAt: string | null;
+  group: { id: string; name: string };
+  course: { id: string; code: string; name: string };
+  timeSlot: { id: string; dayOfWeek: string; startTime: string; endTime: string; label: string | null };
+  venue: { id: string; name: string } | null;
+  requestedBy: { id: string; displayName: string; initials: string };
+  reviewedBy: { id: string; displayName: string; initials: string } | null;
+}

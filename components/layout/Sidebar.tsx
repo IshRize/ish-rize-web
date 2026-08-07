@@ -27,6 +27,8 @@ import {
   ChevronRight,
   GaugeCircle,
   CalendarCheck,
+  CalendarPlus,
+  Inbox,
   type LucideIcon,
 } from 'lucide-react';
 import { useAuthStore } from '@/stores/authStore';
@@ -66,6 +68,7 @@ const MY_TEACHING_NAV: NavGroup = {
   items: [
     { href: '/host-dashboard', label: 'Dashboard', icon: GaugeCircle },
     { href: '/my-timetable', label: 'My Timetable', icon: CalendarCheck },
+    { href: '/request-session', label: 'Request Session', icon: CalendarPlus },
   ],
 };
 
@@ -78,6 +81,7 @@ const MANAGE_NAV: NavGroup = {
     { href: '/activities', label: 'Activities', icon: BookOpen },
     { href: '/groups', label: 'Groups', icon: Layers },
     { href: '/calendar', label: 'Calendar', icon: Calendar },
+    { href: '/booking-requests', label: 'Requests', icon: Inbox },
   ],
 };
 

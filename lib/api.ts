@@ -16,6 +16,7 @@ import type {
   ActivitySummary,
   AuditLogEntry,
   Booking,
+  BookingRequest,
   BookingIngestionCommitResult,
   BookingIngestionResult,
   Calendar,
@@ -307,6 +308,23 @@ export const schedulingApi = {
   },
   autoRescheduleBooking(bookingId: string): Promise<Booking> {
     return request<Booking>(`/bookings/${bookingId}/auto-reschedule`, { method: 'POST' });
+  },
+  createBookingRequest(input: {
+    organizationId: string;
+    termId: string;
+    groupId: string;
+    courseId: string;
+    timeSlotId: string;
+    venueId?: string;
+    reason?: string;
+  }): Promise<BookingRequest> {
+    return request<BookingRequest>('/booking-requests', { method: 'POST', body: JSON.stringify(input) });
+  },
+  listBookingRequests(termId: string): Promise<BookingRequest[]> {
+    return request<BookingRequest[]>(`/booking-requests?termId=${termId}`);
+  },
+  reviewBookingRequest(id: string, decision: { status: 'APPROVED' | 'REJECTED'; reviewNote?: string }): Promise<BookingRequest> {
+    return request<BookingRequest>(`/booking-requests/${id}/review`, { method: 'PATCH', body: JSON.stringify(decision) });
   },
 };
 
