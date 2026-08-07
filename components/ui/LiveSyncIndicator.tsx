@@ -1,14 +1,3 @@
-/**
- * Module: LiveSyncIndicator
- * Layer:  web-component (presentational)
- * Context: See COPILOT_CONTEXT.md, IMPLEMENTATION_PLAN.md (Phase 4)
- *
- * Purpose: A small pulsing presence dot (Slack/Figma-style) signaling live
- *          real-time sync on the schedule view. Reflects the actual Socket.io
- *          connection state from useScheduleSocket — solid pulsing green when
- *          connected, static muted when not, rather than a decorative dot that
- *          always claims to be live.
- */
 interface LiveSyncIndicatorProps {
   connected: boolean;
 }
@@ -24,7 +13,7 @@ export function LiveSyncIndicator({ connected }: LiveSyncIndicatorProps) {
         }}
         aria-hidden="true"
       />
-      {connected ? 'Live' : 'Offline'}
+      {connected ? 'Live' : 'Live updates paused'}
     </span>
   );
 }
