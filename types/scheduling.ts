@@ -246,6 +246,7 @@ export interface MyTeachingLoad {
   totalMinutes: number;
   bookingCount: number;
   courses: { courseId: string; code: string; name: string; minutes: number; bookingCount: number }[];
+  groups: { groupId: string; name: string; department: string }[];
 }
 
 export interface TeachingLoadEntry {

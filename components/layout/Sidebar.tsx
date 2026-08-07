@@ -25,6 +25,8 @@ import {
   X,
   ChevronLeft,
   ChevronRight,
+  GaugeCircle,
+  CalendarCheck,
   type LucideIcon,
 } from 'lucide-react';
 import { useAuthStore } from '@/stores/authStore';
@@ -56,6 +58,14 @@ const SCHEDULING_NAV: NavGroup = {
     { href: '/clashes', label: 'Clashes', icon: AlertTriangle },
     { href: '/free-finder', label: 'Free Finder', icon: Search },
     { href: '/ingestion', label: 'Ingestion', icon: Upload },
+  ],
+};
+
+const MY_TEACHING_NAV: NavGroup = {
+  label: 'MY TEACHING',
+  items: [
+    { href: '/host-dashboard', label: 'Dashboard', icon: GaugeCircle },
+    { href: '/my-timetable', label: 'My Timetable', icon: CalendarCheck },
   ],
 };
 
@@ -238,6 +248,7 @@ export function Sidebar() {
         {/* Main nav */}
         <nav className="flex-1 space-y-4 overflow-y-auto px-2 py-3">
           <NavSection group={SCHEDULING_NAV} pathname={pathname} collapsed={isCollapsed} onClick={onNavigate} />
+          <NavSection group={MY_TEACHING_NAV} pathname={pathname} collapsed={isCollapsed} onClick={onNavigate} />
           {isCoordinatorOrAbove && (
             <NavSection group={MANAGE_NAV} pathname={pathname} collapsed={isCollapsed} onClick={onNavigate} />
           )}
