@@ -39,10 +39,12 @@ async function forward(req: NextRequest, segments: string[]): Promise<NextRespon
 
   const backendRes = await fetch(target, init);
   const text = await backendRes.text();
-  return new NextResponse(text, {
-    status: backendRes.status,
-    headers: { 'Content-Type': backendRes.headers.get('Content-Type') ?? 'application/json' },
-  });
+  const resHeaders: Record<string, string> = {
+    'Content-Type': backendRes.headers.get('Content-Type') ?? 'application/json',
+  };
+  const rt = backendRes.headers.get('X-Response-Time');
+  if (rt) resHeaders['X-Response-Time'] = rt;
+  return new NextResponse(text, { status: backendRes.status, headers: resHeaders });
 }
 
 type RouteContext = { params: Promise<{ path: string[] }> };

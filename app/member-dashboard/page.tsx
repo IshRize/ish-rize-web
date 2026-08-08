@@ -1,22 +1,23 @@
 /**
  * Module: Member Dashboard page
  * Layer:  web-page (client)
- * Context: Stage 13 WS0 — members see their personal schedule from group memberships
+ * Context: Stage 13 WS0+WS2 — members see their personal schedule + clash alerts
  */
 'use client';
 
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useQuery } from '@tanstack/react-query';
 import {
+  AlertTriangle,
   CalendarDays,
   Clock,
   Layers,
   BookOpen,
   Users2,
 } from 'lucide-react';
-import { schedulingApi } from '@/lib/api';
+import { schedulingApi, lastResponseTimeMs } from '@/lib/api';
 import { useAuthStore } from '@/stores/authStore';
 import { useScheduleSelectionStore } from '@/stores/scheduleSelectionStore';
 import { AppShell } from '@/components/layout/AppShell';
@@ -25,7 +26,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Button } from '@/components/ui/button';
 import { dayLabel } from '@/lib/dayNames';
-import type { MemberScheduleBooking } from '@/types/scheduling';
+import type { MemberScheduleBooking, Clash } from '@/types/scheduling';
 
 const DAY_ORDER = ['MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT', 'SUN'];
 
@@ -51,6 +52,8 @@ export default function MemberDashboardPage() {
   const router = useRouter();
   const { isAuthenticated, isLoading: authLoading, loadUser } = useAuthStore();
   const { organizationId, termId, setOrganizationId, setTermId } = useScheduleSelectionStore();
+  const [scheduleTime, setScheduleTime] = useState<string | null>(null);
+  const [clashTime, setClashTime] = useState<string | null>(null);
 
   useEffect(() => { loadUser(); }, [loadUser]);
   useEffect(() => {
@@ -79,15 +82,33 @@ export default function MemberDashboardPage() {
 
   const scheduleQuery = useQuery({
     queryKey: ['my-member-schedule', termId],
-    queryFn: () => schedulingApi.getMyMemberSchedule(termId),
+    queryFn: async () => {
+      const data = await schedulingApi.getMyMemberSchedule(termId);
+      setScheduleTime(lastResponseTimeMs);
+      return data;
+    },
+    enabled: !!termId,
+  });
+
+  const clashesQuery = useQuery({
+    queryKey: ['my-member-clashes', termId],
+    queryFn: async () => {
+      const data = await schedulingApi.getMyMemberClashes(termId);
+      setClashTime(lastResponseTimeMs);
+      return data;
+    },
     enabled: !!termId,
   });
 
   const isLoading = scheduleQuery.isLoading;
   const groups = scheduleQuery.data?.groups ?? [];
   const bookings = scheduleQuery.data?.bookings ?? [];
+  const clashes: Clash[] = clashesQuery.data ?? [];
   const sorted = sortBookings(bookings);
   const byDay = groupByDay(sorted);
+
+  const clashSlotIds = new Set(clashes.flatMap((c) => [c.timeSlotId]));
+  const clashBookingIds = new Set(clashes.flatMap((c) => c.bookingIds));
 
   const uniqueCourses = [...new Set(bookings.map((b) => b.course.id))];
   const totalMinutes = bookings.reduce((sum, b) => {
@@ -126,12 +147,44 @@ export default function MemberDashboardPage() {
     <AppShell>
       <PageHeader title="My Schedule" />
 
+      {/* Clash alerts */}
+      {clashes.length > 0 && (
+        <div className="mb-4 rounded-lg border-2 border-[var(--fg-clash)]/40 bg-[var(--bg-clash)] p-4">
+          <div className="mb-2 flex items-center gap-2">
+            <AlertTriangle size={18} className="text-[var(--fg-clash)]" />
+            <h2 className="text-sm font-semibold text-[var(--fg-clash)]">
+              {clashes.length} schedule clash{clashes.length !== 1 ? 'es' : ''}
+            </h2>
+          </div>
+          <ul className="space-y-2">
+            {clashes.map((clash, i) => {
+              const slotBooking = bookings.find((b) => b.timeSlot.id === clash.timeSlotId);
+              return (
+                <li
+                  key={i}
+                  className="rounded-md border border-[var(--fg-clash)]/30 bg-[var(--bg-clash)] px-3 py-2"
+                >
+                  <span className="text-sm font-medium text-[var(--fg-clash)]">
+                    {clash.detail.activityCodes.join(' vs ')}
+                  </span>
+                  {slotBooking && (
+                    <span className="ml-2 text-xs tabular-nums text-[var(--fg-clash)]/80">
+                      {dayLabel(slotBooking.timeSlot.dayOfWeek)} {slotBooking.timeSlot.startTime}–{slotBooking.timeSlot.endTime}
+                    </span>
+                  )}
+                </li>
+              );
+            })}
+          </ul>
+        </div>
+      )}
+
       {/* Stat cards */}
       <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
         <StatCard label="Bookings" value={bookings.length} icon={CalendarDays} colorClass="text-[var(--accent-primary)]" loading={isLoading} />
         <StatCard label="Weekly Hours" value={`${(totalMinutes / 60).toFixed(1)}h`} icon={Clock} colorClass="text-[var(--fg-pending)]" loading={isLoading} />
         <StatCard label="Activities" value={uniqueCourses.length} icon={BookOpen} colorClass="text-[var(--fg-free-slot)]" loading={isLoading} />
-        <StatCard label="Groups" value={groups.length} icon={Layers} colorClass="text-[var(--accent-secondary)]" loading={isLoading} />
+        <StatCard label="Clashes" value={clashes.length} icon={AlertTriangle} colorClass={clashes.length > 0 ? 'text-[var(--fg-clash)]' : 'text-[var(--fg-free-slot)]'} loading={clashesQuery.isLoading} />
       </div>
 
       {/* Weekly schedule */}
@@ -153,9 +206,16 @@ export default function MemberDashboardPage() {
                   {byDay.get(day)!.map((b) => (
                     <div
                       key={b.id}
-                      className="flex items-center justify-between rounded-md border border-[var(--border-default)] px-3 py-2"
+                      className={`flex items-center justify-between rounded-md border px-3 py-2 ${
+                        clashBookingIds.has(b.id)
+                          ? 'border-[var(--fg-clash)]/40 bg-[var(--bg-clash)]'
+                          : 'border-[var(--border-default)]'
+                      }`}
                     >
                       <div className="min-w-0">
+                        {clashBookingIds.has(b.id) && (
+                          <AlertTriangle size={14} className="mr-1.5 inline-block text-[var(--fg-clash)]" />
+                        )}
                         <span className="text-sm font-medium text-foreground">{b.course.code}</span>
                         <span className="ml-2 text-sm text-muted-foreground">{b.course.name}</span>
                         {b.host && (
@@ -200,10 +260,15 @@ export default function MemberDashboardPage() {
         </Card>
       )}
 
-      <div className="mt-6 flex gap-3">
+      <div className="mt-6 flex items-center justify-between">
         <Button asChild variant="outline">
           <Link href="/free-finder">Find Free Rooms</Link>
         </Button>
+        {(scheduleTime || clashTime) && (
+          <p className="text-xs tabular-nums text-[var(--fg-muted)]">
+            API: schedule {scheduleTime ?? '—'}{clashTime ? ` · clashes ${clashTime}` : ''}
+          </p>
+        )}
       </div>
     </AppShell>
   );
