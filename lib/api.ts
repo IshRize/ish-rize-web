@@ -36,6 +36,7 @@ import type {
   MasterSlotIngestionResult,
   MasterSlotRow,
   MemberProfile,
+  MemberScheduleResponse,
   MyHost,
   MyTeachingLoad,
   OrgConfig,
@@ -200,6 +201,15 @@ export const schedulingApi = {
   },
   getTeachingLoad(termId: string, orgUnitId: string): Promise<TeachingLoadEntry[]> {
     return request<TeachingLoadEntry[]>(`/teaching-load?termId=${termId}&orgUnitId=${orgUnitId}`);
+  },
+  getMyMemberSchedule(termId: string): Promise<MemberScheduleResponse> {
+    return request<MemberScheduleResponse>(`/my-schedule?termId=${termId}`);
+  },
+  addMemberToGroup(groupId: string, userId: string): Promise<void> {
+    return request<void>(`/groups/${groupId}/members`, { method: 'POST', body: JSON.stringify({ userId }) });
+  },
+  removeMemberFromGroup(groupId: string, userId: string): Promise<void> {
+    return request<void>(`/groups/${groupId}/members/${userId}`, { method: 'DELETE' });
   },
   listTerms(organizationId: string): Promise<Term[]> {
     return request<Term[]>(`/terms?organizationId=${organizationId}`);

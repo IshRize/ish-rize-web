@@ -434,3 +434,12 @@ export interface BookingRequest {
   requestedBy: { id: string; displayName: string; initials: string };
   reviewedBy: { id: string; displayName: string; initials: string } | null;
 }
+
+export interface MemberScheduleBooking extends Booking {
+  timeSlot: TimeSlot;
+}
+
+export interface MemberScheduleResponse {
+  groups: { groupId: string; name: string; department: string }[];
+  bookings: MemberScheduleBooking[];
+}
