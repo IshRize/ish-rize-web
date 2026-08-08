@@ -62,11 +62,14 @@ import type {
 
 const PROXY_BASE = '/api/proxy';
 
+export let lastResponseTimeMs: string | null = null;
+
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
   const res = await fetch(`${PROXY_BASE}${path}`, {
     ...init,
     headers: { 'Content-Type': 'application/json', ...(init?.headers ?? {}) },
   });
+  lastResponseTimeMs = res.headers.get('X-Response-Time');
   const json = await res.json().catch(() => null);
   if (!res.ok || !json?.success) {
     throw new Error(json?.message ?? `Request failed (${res.status})`);
@@ -205,6 +208,9 @@ export const schedulingApi = {
   },
   getMyMemberSchedule(termId: string): Promise<MemberScheduleResponse> {
     return request<MemberScheduleResponse>(`/my-schedule?termId=${termId}`);
+  },
+  getMyMemberClashes(termId: string): Promise<Clash[]> {
+    return request<Clash[]>(`/my-schedule/clashes?termId=${termId}`);
   },
   addMemberToGroup(groupId: string, userId: string): Promise<void> {
     return request<void>(`/groups/${groupId}/members`, { method: 'POST', body: JSON.stringify({ userId }) });
