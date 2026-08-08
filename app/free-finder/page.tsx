@@ -14,6 +14,7 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useQuery } from '@tanstack/react-query';
+import { MapPin, RefreshCw } from 'lucide-react';
 import { schedulingApi } from '@/lib/api';
 import { vocab } from '@/lib/vocab';
 import { useAuthStore } from '@/stores/authStore';
@@ -21,6 +22,8 @@ import { useScheduleSelectionStore } from '@/stores/scheduleSelectionStore';
 import { AppHeader } from '@/components/layout/AppHeader';
 import { AppShell } from '@/components/layout/AppShell';
 import { Select } from '@/components/ui/LegacySelect';
+import { Button } from '@/components/ui/button';
+import { Skeleton } from '@/components/ui/skeleton';
 import { dayLabel } from '@/lib/dayNames';
 import type { TimeSlot } from '@/types/scheduling';
 
@@ -62,6 +65,16 @@ export default function FreeFinderPage() {
   useEffect(() => {
     if (!authLoading && !isAuthenticated) router.replace('/login');
   }, [authLoading, isAuthenticated, router]);
+
+  // "Free Right Now" — auto-queries on load, refreshable
+  const freeNowQuery = useQuery({
+    queryKey: ['free-venues-now', organizationId, termId],
+    queryFn: () => schedulingApi.getFreeVenuesNow(organizationId, termId),
+    enabled: !!organizationId && !!termId,
+    refetchInterval: 5 * 60 * 1000,
+  });
+  const nowSlot = freeNowQuery.data?.currentSlot;
+  const nowVenues = freeNowQuery.data?.venues ?? [];
 
   const configQuery = useQuery({
     queryKey: ['org-config', organizationId],
@@ -137,6 +150,62 @@ export default function FreeFinderPage() {
   return (
     <AppShell>
       <AppHeader title="Free Finder" />
+
+      {/* Free Right Now — hero section */}
+      <section className="mb-6 rounded-lg border-2 border-[var(--fg-free-slot)]/40 bg-[var(--bg-free-slot)]/30 p-4">
+        <div className="mb-3 flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <MapPin size={18} className="text-[var(--fg-free-slot)]" />
+            <h2 className="text-sm font-semibold text-[var(--fg-primary)]">Free Right Now</h2>
+            {nowSlot && (
+              <span className="rounded-full bg-[var(--bg-free-slot)] px-2 py-0.5 text-xs tabular-nums text-[var(--fg-free-slot)]">
+                {slotLabel(nowSlot)}
+              </span>
+            )}
+          </div>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => freeNowQuery.refetch()}
+            disabled={freeNowQuery.isFetching}
+            className="text-xs text-[var(--fg-muted)]"
+          >
+            <RefreshCw size={14} className={freeNowQuery.isFetching ? 'animate-spin' : ''} />
+            Refresh
+          </Button>
+        </div>
+
+        {freeNowQuery.isLoading ? (
+          <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+            <Skeleton className="h-8 w-full" />
+            <Skeleton className="h-8 w-full" />
+            <Skeleton className="h-8 w-full" />
+            <Skeleton className="h-8 w-full" />
+          </div>
+        ) : !nowSlot ? (
+          <p className="text-sm text-[var(--fg-muted)]">
+            No active time slot right now. Check back during scheduled hours.
+          </p>
+        ) : nowVenues.length === 0 ? (
+          <p className="text-sm text-[var(--fg-muted)]">All rooms are occupied for this slot.</p>
+        ) : (
+          <>
+            <p className="mb-2 text-xs text-[var(--fg-muted)]">
+              {nowVenues.length} room{nowVenues.length !== 1 ? 's' : ''} available
+            </p>
+            <ul className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-4">
+              {nowVenues.map((v) => (
+                <li
+                  key={v.id}
+                  className="rounded-md border border-[var(--fg-free-slot)]/30 bg-[var(--bg-free-slot)] px-2 py-1.5 text-sm text-[var(--fg-free-slot)]"
+                >
+                  {v.name} <span className="tabular-nums opacity-80">· cap {v.capacity}</span>
+                </li>
+              ))}
+            </ul>
+          </>
+        )}
+      </section>
 
       <div className="grid gap-6 lg:grid-cols-3">
         <section className="space-y-3 rounded-lg border border-[var(--border-default)] bg-[var(--bg-secondary)] p-4">

@@ -27,6 +27,7 @@ import type {
   DraftBooking,
   DraftMasterSlot,
   FeatureFlag,
+  FreeNowResponse,
   Group,
   GroupSummary,
   Host,
@@ -295,6 +296,9 @@ export const schedulingApi = {
   },
   getFreeSlotsForVenue(venueId: string): Promise<TimeSlot[]> {
     return request<TimeSlot[]>(`/availability/venue/${venueId}`);
+  },
+  getFreeVenuesNow(organizationId: string, termId: string): Promise<FreeNowResponse> {
+    return request<FreeNowResponse>(`/availability/venues-now?organizationId=${organizationId}&termId=${termId}`);
   },
   createBooking(input: {
     termId: string;
