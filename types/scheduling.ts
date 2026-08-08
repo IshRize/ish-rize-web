@@ -443,3 +443,8 @@ export interface MemberScheduleResponse {
   groups: { groupId: string; name: string; department: string }[];
   bookings: MemberScheduleBooking[];
 }
+
+export interface FreeNowResponse {
+  currentSlot: TimeSlot | null;
+  venues: VenueSummary[];
+}
