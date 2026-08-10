@@ -439,6 +439,18 @@ export const orgApi = {
   cancelDeletion(orgId: string): Promise<void> {
     return request<void>(`/organizations/${orgId}/cancel-deletion`, { method: 'POST' });
   },
+  async exportOrgData(orgId: string): Promise<void> {
+    const data = await request<Record<string, unknown>>(`/organizations/${orgId}/export`);
+    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `ishrize-org-export-${orgId}.json`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  },
   transferOwnership(orgId: string, data: { targetUserId: string; password: string }): Promise<void> {
     return request<void>(`/organizations/${orgId}/transfer-ownership`, {
       method: 'POST',
