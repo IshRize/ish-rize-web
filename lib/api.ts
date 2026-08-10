@@ -60,6 +60,7 @@ import type {
   VenueType,
   NotificationsResponse,
   NotificationPreferences,
+  CourseAttendanceSummary,
 } from '@/types/scheduling';
 
 const PROXY_BASE = '/api/proxy';
@@ -213,6 +214,9 @@ export const schedulingApi = {
   },
   getMyMemberClashes(termId: string): Promise<Clash[]> {
     return request<Clash[]>(`/my-schedule/clashes?termId=${termId}`);
+  },
+  getMyAttendanceSummary(termId: string): Promise<CourseAttendanceSummary[]> {
+    return request<CourseAttendanceSummary[]>(`/my-schedule/attendance-summary?termId=${termId}`);
   },
   addMemberToGroup(groupId: string, userId: string): Promise<void> {
     return request<void>(`/groups/${groupId}/members`, { method: 'POST', body: JSON.stringify({ userId }) });

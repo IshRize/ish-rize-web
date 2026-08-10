@@ -15,6 +15,7 @@ import {
   CalendarDays,
   Clock,
   BookOpen,
+  GraduationCap,
   Users2,
 } from 'lucide-react';
 import { schedulingApi, notificationApi, lastResponseTimeMs } from '@/lib/api';
@@ -27,7 +28,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Button } from '@/components/ui/button';
 import { dayLabel } from '@/lib/dayNames';
 import { Switch } from '@/components/ui/switch';
-import type { MemberScheduleBooking, Clash, NotificationPreferences } from '@/types/scheduling';
+import type { MemberScheduleBooking, Clash, NotificationPreferences, CourseAttendanceSummary } from '@/types/scheduling';
 
 const DAY_ORDER = ['MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT', 'SUN'];
 
@@ -55,6 +56,7 @@ export default function MemberDashboardPage() {
   const { organizationId, termId, setOrganizationId, setTermId } = useScheduleSelectionStore();
   const [scheduleTime, setScheduleTime] = useState<string | null>(null);
   const [clashTime, setClashTime] = useState<string | null>(null);
+  const [attendanceTime, setAttendanceTime] = useState<string | null>(null);
   const queryClient = useQueryClient();
 
   useEffect(() => { loadUser(); }, [loadUser]);
@@ -102,6 +104,16 @@ export default function MemberDashboardPage() {
     enabled: !!termId,
   });
 
+  const attendanceQuery = useQuery({
+    queryKey: ['my-attendance-summary', termId],
+    queryFn: async () => {
+      const data = await schedulingApi.getMyAttendanceSummary(termId);
+      setAttendanceTime(lastResponseTimeMs);
+      return data;
+    },
+    enabled: !!termId,
+  });
+
   const prefsQuery = useQuery({
     queryKey: ['notification-preferences', organizationId],
     queryFn: () => notificationApi.getPreferences(organizationId),
@@ -122,6 +134,11 @@ export default function MemberDashboardPage() {
   const byDay = groupByDay(sorted);
 
   const clashBookingIds = new Set(clashes.flatMap((c) => c.bookingIds));
+
+  const attendanceByCourse = new Map<string, CourseAttendanceSummary>();
+  for (const a of attendanceQuery.data ?? []) {
+    attendanceByCourse.set(a.courseId, a);
+  }
 
   const uniqueCourses = [...new Set(bookings.map((b) => b.course.id))];
   const totalMinutes = bookings.reduce((sum, b) => {
@@ -237,12 +254,25 @@ export default function MemberDashboardPage() {
                           </span>
                         )}
                       </div>
-                      <div className="shrink-0 text-right">
+                      <div className="flex shrink-0 items-center gap-2 text-right">
+                        {attendanceByCourse.has(b.course.id) && (() => {
+                          const att = attendanceByCourse.get(b.course.id)!;
+                          const color = att.percentage >= 75
+                            ? 'bg-[var(--bg-free-slot)] text-[var(--fg-free-slot)]'
+                            : att.percentage >= 50
+                              ? 'bg-[var(--bg-pending)] text-[var(--fg-pending)]'
+                              : 'bg-[var(--bg-clash)] text-[var(--fg-clash)]';
+                          return (
+                            <span className={`rounded-full px-2 py-0.5 text-[10px] font-semibold tabular-nums ${color}`} title={`${att.attended}/${att.totalSessions} sessions`}>
+                              {att.percentage}%
+                            </span>
+                          );
+                        })()}
                         <span className="text-xs tabular-nums text-[var(--accent-primary)]">
                           {b.timeSlot.startTime}–{b.timeSlot.endTime}
                         </span>
                         {b.venue && (
-                          <span className="ml-2 text-xs text-muted-foreground">{b.venue.name}</span>
+                          <span className="text-xs text-muted-foreground">{b.venue.name}</span>
                         )}
                       </div>
                     </div>
@@ -269,6 +299,43 @@ export default function MemberDashboardPage() {
                 </li>
               ))}
             </ul>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Attendance summary */}
+      {(attendanceQuery.data?.length ?? 0) > 0 && (
+        <Card className="mt-6">
+          <CardHeader className="flex flex-row items-center gap-2 pb-2">
+            <GraduationCap size={18} className="text-muted-foreground" />
+            <CardTitle className="text-sm font-semibold">Attendance</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-2">
+              {attendanceQuery.data!.map((a) => {
+                const color = a.percentage >= 75
+                  ? 'text-[var(--fg-free-slot)]'
+                  : a.percentage >= 50
+                    ? 'text-[var(--fg-pending)]'
+                    : 'text-[var(--fg-clash)]';
+                return (
+                  <div key={a.courseId} className="flex items-center justify-between rounded-md border border-[var(--border-default)] px-3 py-2">
+                    <div className="min-w-0">
+                      <span className="text-sm font-medium text-foreground">{a.courseCode}</span>
+                      <span className="ml-2 text-sm text-muted-foreground">{a.courseName}</span>
+                    </div>
+                    <div className="flex items-center gap-2 shrink-0">
+                      <span className="text-xs tabular-nums text-muted-foreground">
+                        {a.attended}/{a.totalSessions}
+                      </span>
+                      <span className={`text-sm font-semibold tabular-nums ${color}`}>
+                        {a.percentage}%
+                      </span>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
           </CardContent>
         </Card>
       )}
@@ -305,9 +372,9 @@ export default function MemberDashboardPage() {
         <Button asChild variant="outline">
           <Link href="/free-finder">Find Free Rooms</Link>
         </Button>
-        {(scheduleTime || clashTime) && (
+        {(scheduleTime || clashTime || attendanceTime) && (
           <p className="text-xs tabular-nums text-[var(--fg-muted)]">
-            API: schedule {scheduleTime ?? '—'}{clashTime ? ` · clashes ${clashTime}` : ''}
+            API: schedule {scheduleTime ?? '—'}{clashTime ? ` · clashes ${clashTime}` : ''}{attendanceTime ? ` · attendance ${attendanceTime}` : ''}
           </p>
         )}
       </div>

@@ -475,3 +475,12 @@ export interface NotificationPreferences {
   sessionAdded: boolean;
   bookingUpdated: boolean;
 }
+
+export interface CourseAttendanceSummary {
+  courseId: string;
+  courseCode: string;
+  courseName: string;
+  totalSessions: number;
+  attended: number;
+  percentage: number;
+}
