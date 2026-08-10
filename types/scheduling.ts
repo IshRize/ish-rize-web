@@ -448,3 +448,29 @@ export interface FreeNowResponse {
   currentSlot: TimeSlot | null;
   venues: VenueSummary[];
 }
+
+export type NotificationType = 'ROOM_CHANGED' | 'SESSION_CANCELLED' | 'SESSION_ADDED' | 'BOOKING_UPDATED';
+
+export interface AppNotification {
+  id: string;
+  type: NotificationType;
+  title: string;
+  body: string;
+  metadata: Record<string, unknown> | null;
+  read: boolean;
+  createdAt: string;
+  organization: { id: string; shortName: string };
+}
+
+export interface NotificationsResponse {
+  items: AppNotification[];
+  unreadCount: number;
+  nextCursor: string | null;
+}
+
+export interface NotificationPreferences {
+  roomChanged: boolean;
+  sessionCancelled: boolean;
+  sessionAdded: boolean;
+  bookingUpdated: boolean;
+}
