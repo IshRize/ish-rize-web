@@ -351,7 +351,7 @@ export const schedulingApi = {
 };
 
 export const orgApi = {
-  createOrganization(data: { name: string; orgType: string; description?: string }): Promise<Organization> {
+  createOrganization(data: { name: string; shortName: string; orgType: string; timezone?: string }): Promise<Organization> {
     return request<Organization>('/organizations', {
       method: 'POST',
       body: JSON.stringify(data),
