@@ -3,8 +3,8 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useMutation } from '@tanstack/react-query';
-import { Loader2, Building2, Settings2, UserPlus, Check } from 'lucide-react';
-import { orgApi } from '@/lib/api';
+import { Loader2, Building2, Settings2, UserPlus, Check, Clock } from 'lucide-react';
+import { orgApi, lastResponseTimeMs } from '@/lib/api';
 import { useAuthStore } from '@/stores/authStore';
 import { useScheduleSelectionStore } from '@/stores/scheduleSelectionStore';
 import { Button } from '@/components/ui/button';
@@ -23,12 +23,34 @@ import {
 import type { OrgRole } from '@/types/scheduling';
 
 const ORG_TYPES = [
-  { value: 'university', label: 'University / College' },
-  { value: 'school', label: 'School' },
-  { value: 'church', label: 'Church / Religious Org' },
-  { value: 'company', label: 'Company / Corporate' },
-  { value: 'other', label: 'Other' },
+  { value: 'UNIVERSITY', label: 'University / College' },
+  { value: 'CHURCH', label: 'Church / Religious Org' },
+  { value: 'EVENT', label: 'Event / Conference' },
+  { value: 'OTHER', label: 'Other' },
 ];
+
+const COMMON_TIMEZONES = [
+  { value: 'Africa/Accra', label: 'Africa/Accra (GMT)' },
+  { value: 'Africa/Lagos', label: 'Africa/Lagos (WAT)' },
+  { value: 'Africa/Nairobi', label: 'Africa/Nairobi (EAT)' },
+  { value: 'Africa/Johannesburg', label: 'Africa/Johannesburg (SAST)' },
+  { value: 'Africa/Cairo', label: 'Africa/Cairo (EET)' },
+  { value: 'Europe/London', label: 'Europe/London (GMT/BST)' },
+  { value: 'Europe/Berlin', label: 'Europe/Berlin (CET)' },
+  { value: 'America/New_York', label: 'America/New_York (EST)' },
+  { value: 'America/Chicago', label: 'America/Chicago (CST)' },
+  { value: 'America/Los_Angeles', label: 'America/Los_Angeles (PST)' },
+  { value: 'Asia/Dubai', label: 'Asia/Dubai (GST)' },
+  { value: 'Asia/Kolkata', label: 'Asia/Kolkata (IST)' },
+  { value: 'Asia/Singapore', label: 'Asia/Singapore (SGT)' },
+  { value: 'UTC', label: 'UTC' },
+];
+
+function deriveShortName(name: string): string {
+  const words = name.trim().split(/\s+/).filter(Boolean);
+  if (words.length === 1) return words[0].slice(0, 10);
+  return words.map((w) => w[0]).join('').toUpperCase().slice(0, 10);
+}
 
 const STEPS = [
   { icon: Building2, label: 'Organization' },
@@ -81,14 +103,17 @@ export default function CreateOrgPage() {
 
   // Step 1: Org details
   const [name, setName] = useState('');
-  const [orgType, setOrgType] = useState('university');
-  const [description, setDescription] = useState('');
+  const [shortName, setShortName] = useState('');
+  const [orgType, setOrgType] = useState('UNIVERSITY');
+  const [timezone, setTimezone] = useState(() => Intl.DateTimeFormat().resolvedOptions().timeZone);
 
   // Step 3: Invite
   const [inviteEmails, setInviteEmails] = useState('');
   const [inviteRole, setInviteRole] = useState<OrgRole>('MEMBER');
 
   const [createdOrgId, setCreatedOrgId] = useState<string | null>(null);
+  const [createTime, setCreateTime] = useState<string | null>(null);
+  const [inviteTime, setInviteTime] = useState<string | null>(null);
 
   useEffect(() => { loadUser(); }, [loadUser]);
   useEffect(() => {
@@ -96,10 +121,16 @@ export default function CreateOrgPage() {
   }, [authLoading, isAuthenticated, router]);
 
   const createMutation = useMutation({
-    mutationFn: () => orgApi.createOrganization({ name, orgType, description: description || undefined }),
+    mutationFn: () => orgApi.createOrganization({
+      name,
+      shortName: shortName.trim() || deriveShortName(name),
+      orgType,
+      timezone,
+    }),
     onSuccess: (org) => {
       setCreatedOrgId(org.id);
       setOrganizationId(org.id);
+      setCreateTime(lastResponseTimeMs);
       setError(null);
       setStep(2);
     },
@@ -116,6 +147,7 @@ export default function CreateOrgPage() {
       return orgApi.sendInvitations(createdOrgId!, { emails, role: inviteRole });
     },
     onSuccess: () => {
+      setInviteTime(lastResponseTimeMs);
       router.push('/overview');
     },
     onError: (err: Error) => setError(err.message),
@@ -169,34 +201,55 @@ export default function CreateOrgPage() {
                 <Label htmlFor="org-name">Name</Label>
                 <Input
                   id="org-name"
-                  placeholder="e.g. University of Ghana Math Dept"
+                  placeholder="e.g. University of Ghana Math Department"
                   value={name}
-                  onChange={(e) => setName(e.target.value)}
+                  onChange={(e) => {
+                    setName(e.target.value);
+                    if (!shortName || shortName === deriveShortName(name)) {
+                      setShortName(deriveShortName(e.target.value));
+                    }
+                  }}
                   autoFocus
                 />
               </div>
               <div className="space-y-2">
-                <Label>Type</Label>
-                <Select value={orgType} onValueChange={setOrgType}>
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {ORG_TYPES.map((t) => (
-                      <SelectItem key={t.value} value={t.value}>{t.label}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="org-desc">Description <span className="text-muted-foreground">(optional)</span></Label>
-                <Textarea
-                  id="org-desc"
-                  placeholder="A brief description of your organization"
-                  value={description}
-                  onChange={(e) => setDescription(e.target.value)}
-                  rows={3}
+                <Label htmlFor="short-name">Short Name</Label>
+                <Input
+                  id="short-name"
+                  placeholder="e.g. UGMD"
+                  value={shortName}
+                  onChange={(e) => setShortName(e.target.value)}
+                  maxLength={50}
                 />
+                <p className="text-xs text-muted-foreground">Used for the URL slug. Auto-generated from the name.</p>
+              </div>
+              <div className="grid gap-4 sm:grid-cols-2">
+                <div className="space-y-2">
+                  <Label>Type</Label>
+                  <Select value={orgType} onValueChange={setOrgType}>
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {ORG_TYPES.map((t) => (
+                        <SelectItem key={t.value} value={t.value}>{t.label}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-2">
+                  <Label>Timezone</Label>
+                  <Select value={timezone} onValueChange={setTimezone}>
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {COMMON_TIMEZONES.map((tz) => (
+                        <SelectItem key={tz.value} value={tz.value}>{tz.label}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
               </div>
             </CardContent>
           </Card>
@@ -205,8 +258,8 @@ export default function CreateOrgPage() {
         {step === 1 && (
           <Card>
             <CardHeader>
-              <CardTitle>Configuration</CardTitle>
-              <CardDescription>Review your organization settings</CardDescription>
+              <CardTitle>Confirm & Create</CardTitle>
+              <CardDescription>Review your organization details before creating</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="rounded-md border border-border p-4 space-y-2">
@@ -215,17 +268,19 @@ export default function CreateOrgPage() {
                   <span className="font-medium text-foreground">{name}</span>
                 </div>
                 <div className="flex justify-between text-sm">
+                  <span className="text-muted-foreground">Short Name</span>
+                  <span className="font-medium text-foreground">{shortName || deriveShortName(name)}</span>
+                </div>
+                <div className="flex justify-between text-sm">
                   <span className="text-muted-foreground">Type</span>
                   <span className="font-medium text-foreground">
                     {ORG_TYPES.find((t) => t.value === orgType)?.label}
                   </span>
                 </div>
-                {description && (
-                  <div className="flex justify-between text-sm">
-                    <span className="text-muted-foreground">Description</span>
-                    <span className="font-medium text-foreground max-w-[200px] text-right">{description}</span>
-                  </div>
-                )}
+                <div className="flex justify-between text-sm">
+                  <span className="text-muted-foreground">Timezone</span>
+                  <span className="font-medium text-foreground">{timezone}</span>
+                </div>
               </div>
               <p className="text-sm text-muted-foreground">
                 You&apos;ll be the owner of this organization. You can invite team members and configure settings after setup.
@@ -266,6 +321,12 @@ export default function CreateOrgPage() {
               </div>
             </CardContent>
           </Card>
+        )}
+
+        {createTime && (
+          <p className="mt-2 flex items-center gap-1 text-xs text-muted-foreground">
+            <Clock className="h-3 w-3" /> Organization created in {createTime}
+          </p>
         )}
 
         <div className="mt-4 flex justify-between">

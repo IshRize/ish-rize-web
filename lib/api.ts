@@ -60,6 +60,8 @@ import type {
   VenueType,
   NotificationsResponse,
   NotificationPreferences,
+  GenerateSessionsResult,
+  BookingAttendanceStat,
 } from '@/types/scheduling';
 
 const PROXY_BASE = '/api/proxy';
@@ -351,7 +353,7 @@ export const schedulingApi = {
 };
 
 export const orgApi = {
-  createOrganization(data: { name: string; orgType: string; description?: string }): Promise<Organization> {
+  createOrganization(data: { name: string; shortName: string; orgType: string; timezone?: string }): Promise<Organization> {
     return request<Organization>('/organizations', {
       method: 'POST',
       body: JSON.stringify(data),
@@ -360,7 +362,7 @@ export const orgApi = {
   getOrganization(orgId: string): Promise<Organization> {
     return request<Organization>(`/organizations/${orgId}`);
   },
-  updateOrganization(orgId: string, data: { name?: string; contactEmail?: string }): Promise<Organization> {
+  updateOrganization(orgId: string, data: { name?: string; contactEmail?: string; configProfile?: Record<string, unknown> }): Promise<Organization> {
     return request<Organization>(`/organizations/${orgId}`, {
       method: 'PATCH',
       body: JSON.stringify(data),
@@ -590,6 +592,20 @@ export const notificationApi = {
       method: 'PATCH',
       body: JSON.stringify({ organizationId, ...prefs }),
     });
+  },
+};
+
+export const sessionApi = {
+  generateSessions(organizationId: string, date?: string, termId?: string): Promise<GenerateSessionsResult> {
+    const qs = new URLSearchParams({ organizationId });
+    if (date) qs.set('date', date);
+    if (termId) qs.set('termId', termId);
+    return request<GenerateSessionsResult>(`/sessions/generate?${qs}`, { method: 'POST' });
+  },
+  getBookingAttendanceStats(organizationId: string, termId: string): Promise<BookingAttendanceStat[]> {
+    return request<BookingAttendanceStat[]>(
+      `/sessions/booking-attendance-stats?organizationId=${organizationId}&termId=${termId}`,
+    );
   },
 };
 

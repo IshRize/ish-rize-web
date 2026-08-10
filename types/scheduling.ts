@@ -36,6 +36,7 @@ export interface OrgConfig {
   // ever org-themeable (see lib/orgTheme.ts). Never extend this to the
   // clash/free/pending tokens; those are fixed system-wide by design.
   branding?: {
+    logoUrl?: string;
     accentPrimary?: string;
     accentPrimaryHover?: string;
     accentSecondary?: string;
@@ -474,4 +475,19 @@ export interface NotificationPreferences {
   sessionCancelled: boolean;
   sessionAdded: boolean;
   bookingUpdated: boolean;
+}
+
+export interface GenerateSessionsResult {
+  created: number;
+  skipped: number;
+  termIds: string[];
+}
+
+export interface BookingAttendanceStat {
+  bookingId: string;
+  totalSessions: number;
+  totalRecords: number;
+  presentCount: number;
+  attendanceRate: number | null;
+  latestSessionDate: string | null;
 }
