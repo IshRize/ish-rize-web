@@ -12,17 +12,18 @@
  *          empty cells; everyone else sees a read-only cell.
  */
 import { ClashBadge } from './ClashBadge';
-import type { Booking, Clash } from '@/types/scheduling';
+import type { Booking, BookingAttendanceStat, Clash } from '@/types/scheduling';
 
 interface BookingCellProps {
   bookings: Booking[];
   clashesByBookingId?: Map<string, Clash[]>;
+  attendanceByBookingId?: Map<string, BookingAttendanceStat>;
   canEdit?: boolean;
   onAdd?: () => void;
   onDelete?: (bookingId: string) => void;
 }
 
-export function BookingCell({ bookings, clashesByBookingId, canEdit, onAdd, onDelete }: BookingCellProps) {
+export function BookingCell({ bookings, clashesByBookingId, attendanceByBookingId, canEdit, onAdd, onDelete }: BookingCellProps) {
   if (bookings.length === 0) {
     if (canEdit) {
       return (
@@ -47,6 +48,7 @@ export function BookingCell({ bookings, clashesByBookingId, canEdit, onAdd, onDe
       {bookings.map((b) => {
         const clashes = clashesByBookingId?.get(b.id) ?? [];
         const hasClash = clashes.length > 0;
+        const attendance = attendanceByBookingId?.get(b.id);
         return (
           <div
             key={b.id}
@@ -55,15 +57,29 @@ export function BookingCell({ bookings, clashesByBookingId, canEdit, onAdd, onDe
                 ? 'border-[var(--fg-clash)]/40 bg-[var(--bg-clash)] text-[var(--fg-clash)]'
                 : 'border-[var(--border-default)] bg-[var(--bg-secondary)]'
             }`}
-            title={`${b.course.name}${b.host ? ` — ${b.host.displayName}` : ''}${b.venue ? ` — ${b.venue.name}` : ''}`}
+            title={`${b.course.name}${b.host ? ` — ${b.host.displayName}` : ''}${b.venue ? ` — ${b.venue.name}` : ''}${attendance?.attendanceRate != null ? ` — ${attendance.attendanceRate}% attendance` : ''}`}
           >
-            <div>
+            <div className="min-w-0 flex-1">
               <div className={`font-medium ${hasClash ? 'text-[var(--fg-clash)]' : 'text-[var(--fg-primary)]'}`}>
                 {b.course.code}
               </div>
               <div className={hasClash ? 'text-[var(--fg-clash)]' : 'text-[var(--fg-muted)]'}>
                 {b.host?.initials ?? '—'} · {b.venue?.name ?? 'TBD'}
               </div>
+              {attendance?.attendanceRate != null && (
+                <div
+                  className={`mt-0.5 flex items-center gap-1 ${
+                    attendance.attendanceRate >= 75
+                      ? 'text-green-600 dark:text-green-400'
+                      : attendance.attendanceRate >= 50
+                        ? 'text-yellow-600 dark:text-yellow-400'
+                        : 'text-red-600 dark:text-red-400'
+                  }`}
+                  title={`${attendance.totalSessions} sessions, ${attendance.presentCount}/${attendance.totalRecords} present`}
+                >
+                  <span className="text-[10px] font-medium">{attendance.attendanceRate}%</span>
+                </div>
+              )}
             </div>
             <div className="flex items-center gap-1">
               <ClashBadge clashes={clashes} />

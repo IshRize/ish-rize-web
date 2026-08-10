@@ -14,7 +14,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { schedulingApi } from '@/lib/api';
+import { schedulingApi, sessionApi } from '@/lib/api';
 import { vocab } from '@/lib/vocab';
 import { useAuthStore } from '@/stores/authStore';
 import { useScheduleSelectionStore } from '@/stores/scheduleSelectionStore';
@@ -82,6 +82,12 @@ export default function SchedulePage() {
     queryKey: ['clashes', termId],
     queryFn: () => schedulingApi.getClashes(termId),
     enabled: !!termId,
+  });
+
+  const attendanceQuery = useQuery({
+    queryKey: ['booking-attendance-stats', organizationId, termId],
+    queryFn: () => sessionApi.getBookingAttendanceStats(organizationId, termId),
+    enabled: !!organizationId && !!termId,
   });
 
   function invalidateScheduleAndClashes() {
@@ -172,6 +178,7 @@ export default function SchedulePage() {
           weekDays={config?.weekDays ?? []}
           bookings={filteredBookings}
           clashes={clashesQuery.data}
+          attendanceStats={attendanceQuery.data}
           canEdit={canEditSelectedUnit}
           targetOrgUnitId={filters.unitId !== ALL ? filters.unitId : undefined}
           onAddBooking={(timeSlotId) => setAddTimeSlotId(timeSlotId)}

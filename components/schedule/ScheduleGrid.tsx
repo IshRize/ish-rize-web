@@ -25,13 +25,14 @@ import { useMemo } from 'react';
 import { createColumnHelper, getCoreRowModel, useReactTable, flexRender } from '@tanstack/react-table';
 import { BookingCell } from './BookingCell';
 import { dayLabel } from '@/lib/dayNames';
-import type { Booking, Clash, TimeSlot } from '@/types/scheduling';
+import type { Booking, BookingAttendanceStat, Clash, TimeSlot } from '@/types/scheduling';
 
 interface ScheduleGridProps {
   timeSlots: TimeSlot[];
   weekDays: string[];
   bookings: Booking[];
   clashes?: Clash[];
+  attendanceStats?: BookingAttendanceStat[];
   canEdit?: boolean;
   targetOrgUnitId?: string;
   onAddBooking?: (timeSlotId: string) => void;
@@ -53,11 +54,19 @@ export function ScheduleGrid({
   weekDays,
   bookings,
   clashes = [],
+  attendanceStats,
   canEdit = false,
   targetOrgUnitId,
   onAddBooking,
   onDeleteBooking,
 }: ScheduleGridProps) {
+  const attendanceByBookingId = useMemo(() => {
+    if (!attendanceStats?.length) return undefined;
+    const map = new Map<string, BookingAttendanceStat>();
+    for (const stat of attendanceStats) map.set(stat.bookingId, stat);
+    return map;
+  }, [attendanceStats]);
+
   const clashesByBookingId = useMemo(() => {
     const map = new Map<string, Clash[]>();
     for (const clash of clashes) {
@@ -124,6 +133,7 @@ export function ScheduleGrid({
               <BookingCell
                 bookings={bookingsBySlot.get(slot.id) ?? []}
                 clashesByBookingId={clashesByBookingId}
+                attendanceByBookingId={attendanceByBookingId}
                 canEdit={canAdd}
                 onAdd={() => onAddBooking?.(slot.id)}
                 onDelete={onDeleteBooking}
@@ -133,7 +143,7 @@ export function ScheduleGrid({
         }),
       ),
     ],
-    [weekDays, bookingsBySlot, clashesByBookingId, canAdd, onAddBooking, onDeleteBooking],
+    [weekDays, bookingsBySlot, clashesByBookingId, attendanceByBookingId, canAdd, onAddBooking, onDeleteBooking],
   );
 
   const table = useReactTable({ data: periodRows, columns, getCoreRowModel: getCoreRowModel() });

@@ -9,8 +9,8 @@ import {
   AlertTriangle,
   Check,
 } from 'lucide-react';
-import { schedulingApi, orgApi, lastResponseTimeMs } from '@/lib/api';
-import { Download, Palette } from 'lucide-react';
+import { schedulingApi, orgApi, sessionApi, lastResponseTimeMs } from '@/lib/api';
+import { Download, Palette, CalendarCheck } from 'lucide-react';
 import { useAuthStore } from '@/stores/authStore';
 import { useScheduleSelectionStore } from '@/stores/scheduleSelectionStore';
 import type { FeatureFlag, OrgRole } from '@/types/scheduling';
@@ -194,6 +194,16 @@ export default function SettingsPage() {
     onError: (err: Error) => toast.error(err.message),
   });
 
+  const [sessionGenResult, setSessionGenResult] = useState<string | null>(null);
+  const generateSessionsMutation = useMutation({
+    mutationFn: () => sessionApi.generateSessions(organizationId),
+    onSuccess: (result) => {
+      setSessionGenResult(`${result.created} created, ${result.skipped} already existed`);
+      toast.success(`Generated ${result.created} sessions for today`);
+    },
+    onError: (err: Error) => toast.error(err.message),
+  });
+
   function handleCopyInviteLink() {
     navigator.clipboard.writeText(`${window.location.origin}/accept-invite/${organizationId}`);
     setCopied(true);
@@ -342,6 +352,42 @@ export default function SettingsPage() {
                 ))}
               </div>
             )}
+          </CardContent>
+        </Card>
+
+        {/* Session Generation */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <CalendarCheck className="h-5 w-5" />
+              Session Generation
+            </CardTitle>
+            <CardDescription>Create attendance sessions from today&apos;s scheduled bookings</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="flex items-center justify-between gap-4">
+              <div>
+                <p className="text-sm text-muted-foreground">
+                  Generates Session rows for all bookings scheduled today. Sessions already created for today are skipped.
+                </p>
+                {sessionGenResult && (
+                  <p className="mt-1 text-xs text-muted-foreground">Last run: {sessionGenResult}</p>
+                )}
+              </div>
+              <Button
+                variant="outline"
+                onClick={() => generateSessionsMutation.mutate()}
+                disabled={generateSessionsMutation.isPending}
+                className="shrink-0"
+              >
+                {generateSessionsMutation.isPending ? (
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                ) : (
+                  <CalendarCheck className="mr-2 h-4 w-4" />
+                )}
+                {generateSessionsMutation.isPending ? 'Generating...' : 'Generate Sessions'}
+              </Button>
+            </div>
           </CardContent>
         </Card>
 
