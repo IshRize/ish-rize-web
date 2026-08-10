@@ -449,6 +449,7 @@ export interface FreeNowResponse {
   venues: VenueSummary[];
 }
 
+
 export type NotificationType = 'ROOM_CHANGED' | 'SESSION_CANCELLED' | 'SESSION_ADDED' | 'BOOKING_UPDATED';
 
 export interface AppNotification {

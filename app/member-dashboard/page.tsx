@@ -14,7 +14,6 @@ import {
   Bell,
   CalendarDays,
   Clock,
-  Layers,
   BookOpen,
   Users2,
 } from 'lucide-react';
@@ -122,7 +121,6 @@ export default function MemberDashboardPage() {
   const sorted = sortBookings(bookings);
   const byDay = groupByDay(sorted);
 
-  const clashSlotIds = new Set(clashes.flatMap((c) => [c.timeSlotId]));
   const clashBookingIds = new Set(clashes.flatMap((c) => c.bookingIds));
 
   const uniqueCourses = [...new Set(bookings.map((b) => b.course.id))];
