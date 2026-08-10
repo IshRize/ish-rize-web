@@ -9,7 +9,8 @@ import {
   AlertTriangle,
   Check,
 } from 'lucide-react';
-import { schedulingApi, orgApi } from '@/lib/api';
+import { schedulingApi, orgApi, lastResponseTimeMs } from '@/lib/api';
+import { Download } from 'lucide-react';
 import { useAuthStore } from '@/stores/authStore';
 import { useScheduleSelectionStore } from '@/stores/scheduleSelectionStore';
 import type { FeatureFlag, OrgRole } from '@/types/scheduling';
@@ -142,6 +143,17 @@ export default function SettingsPage() {
     onError: (err: Error) => toast.error(err.message),
   });
 
+  const [exportTime, setExportTime] = useState<string | null>(null);
+
+  const exportMutation = useMutation({
+    mutationFn: () => orgApi.exportOrgData(organizationId),
+    onSuccess: () => {
+      setExportTime(lastResponseTimeMs);
+      toast.success('Organization data exported');
+    },
+    onError: (err: Error) => toast.error(err.message),
+  });
+
   function handleCopyInviteLink() {
     navigator.clipboard.writeText(`${window.location.origin}/accept-invite/${organizationId}`);
     setCopied(true);
@@ -218,6 +230,39 @@ export default function SettingsPage() {
                 ))}
               </div>
             )}
+          </CardContent>
+        </Card>
+
+        {/* Data Export (GDPR) */}
+        <Card>
+          <CardHeader>
+            <CardTitle>Data Export</CardTitle>
+            <CardDescription>Download all organization data as JSON (GDPR Article 20)</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="flex items-center justify-between gap-4">
+              <div>
+                <p className="text-sm text-muted-foreground">
+                  Export includes members, venues, hosts, bookings, calendars, groups, audit logs, and all other organization data.
+                </p>
+                {exportTime && (
+                  <p className="mt-1 text-xs text-muted-foreground">Last export took {exportTime}</p>
+                )}
+              </div>
+              <Button
+                variant="outline"
+                onClick={() => exportMutation.mutate()}
+                disabled={exportMutation.isPending}
+                className="shrink-0"
+              >
+                {exportMutation.isPending ? (
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                ) : (
+                  <Download className="mr-2 h-4 w-4" />
+                )}
+                {exportMutation.isPending ? 'Exporting...' : 'Export Data'}
+              </Button>
+            </div>
           </CardContent>
         </Card>
 
