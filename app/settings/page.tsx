@@ -10,7 +10,7 @@ import {
   Check,
 } from 'lucide-react';
 import { schedulingApi, orgApi, lastResponseTimeMs } from '@/lib/api';
-import { Download } from 'lucide-react';
+import { Download, Palette } from 'lucide-react';
 import { useAuthStore } from '@/stores/authStore';
 import { useScheduleSelectionStore } from '@/stores/scheduleSelectionStore';
 import type { FeatureFlag, OrgRole } from '@/types/scheduling';
@@ -56,6 +56,10 @@ export default function SettingsPage() {
   const [transferUserId, setTransferUserId] = useState('');
   const [transferPassword, setTransferPassword] = useState('');
   const [copied, setCopied] = useState(false);
+  const [logoUrl, setLogoUrl] = useState('');
+  const [accentPrimary, setAccentPrimary] = useState('');
+  const [accentPrimaryHover, setAccentPrimaryHover] = useState('');
+  const [accentSecondary, setAccentSecondary] = useState('');
 
   useEffect(() => { loadUser(); }, [loadUser]);
   useEffect(() => {
@@ -77,11 +81,26 @@ export default function SettingsPage() {
     enabled: !!organizationId,
   });
 
+  const configQuery = useQuery({
+    queryKey: ['org-config', organizationId],
+    queryFn: () => schedulingApi.getOrgConfig(organizationId),
+    enabled: !!organizationId,
+  });
+
   useEffect(() => {
     if (orgQuery.data) {
       setOrgName(orgQuery.data.name);
     }
   }, [orgQuery.data]);
+
+  useEffect(() => {
+    if (configQuery.data?.branding) {
+      setLogoUrl(configQuery.data.branding.logoUrl ?? '');
+      setAccentPrimary(configQuery.data.branding.accentPrimary ?? '');
+      setAccentPrimaryHover(configQuery.data.branding.accentPrimaryHover ?? '');
+      setAccentSecondary(configQuery.data.branding.accentSecondary ?? '');
+    }
+  }, [configQuery.data]);
 
   const flagsQuery = useQuery({
     queryKey: ['featureFlags', organizationId],
@@ -143,6 +162,27 @@ export default function SettingsPage() {
     onError: (err: Error) => toast.error(err.message),
   });
 
+  const brandingMutation = useMutation({
+    mutationFn: async () => {
+      const currentConfig = configQuery.data;
+      if (!currentConfig) throw new Error('Config not loaded');
+      const { orgType, branding: _old, ...profile } = currentConfig;
+      const branding: Record<string, string> = {};
+      if (logoUrl.trim()) branding.logoUrl = logoUrl.trim();
+      if (accentPrimary.trim()) branding.accentPrimary = accentPrimary.trim();
+      if (accentPrimaryHover.trim()) branding.accentPrimaryHover = accentPrimaryHover.trim();
+      if (accentSecondary.trim()) branding.accentSecondary = accentSecondary.trim();
+      return orgApi.updateOrganization(organizationId, {
+        configProfile: { ...profile, branding: Object.keys(branding).length > 0 ? branding : undefined },
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['org-config', organizationId] });
+      toast.success('Branding saved');
+    },
+    onError: (err: Error) => toast.error(err.message),
+  });
+
   const [exportTime, setExportTime] = useState<string | null>(null);
 
   const exportMutation = useMutation({
@@ -196,6 +236,78 @@ export default function SettingsPage() {
               <Button onClick={() => updateOrgMutation.mutate()} disabled={updateOrgMutation.isPending}>
                 {updateOrgMutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                 Save Changes
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Branding */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Palette className="h-5 w-5" /> Branding
+            </CardTitle>
+            <CardDescription>Customize your organization&apos;s look — logo and accent colors</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="logo-url">Logo URL</Label>
+              <div className="flex items-center gap-3">
+                <Input
+                  id="logo-url"
+                  placeholder="https://example.com/logo.png"
+                  value={logoUrl}
+                  onChange={(e) => setLogoUrl(e.target.value)}
+                  className="flex-1"
+                />
+                {logoUrl && (
+                  <img src={logoUrl} alt="Preview" width={32} height={32} className="rounded object-contain" />
+                )}
+              </div>
+              <p className="text-xs text-muted-foreground">Displayed in the sidebar. Use a square image for best results.</p>
+            </div>
+            <div className="grid gap-4 sm:grid-cols-3">
+              <div className="space-y-2">
+                <Label htmlFor="accent-primary">Primary Color</Label>
+                <div className="flex items-center gap-2">
+                  <Input
+                    id="accent-primary"
+                    placeholder="#6366f1"
+                    value={accentPrimary}
+                    onChange={(e) => setAccentPrimary(e.target.value)}
+                  />
+                  {accentPrimary && <div className="h-8 w-8 shrink-0 rounded border" style={{ backgroundColor: accentPrimary }} />}
+                </div>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="accent-hover">Hover Color</Label>
+                <div className="flex items-center gap-2">
+                  <Input
+                    id="accent-hover"
+                    placeholder="#4f46e5"
+                    value={accentPrimaryHover}
+                    onChange={(e) => setAccentPrimaryHover(e.target.value)}
+                  />
+                  {accentPrimaryHover && <div className="h-8 w-8 shrink-0 rounded border" style={{ backgroundColor: accentPrimaryHover }} />}
+                </div>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="accent-secondary">Secondary Color</Label>
+                <div className="flex items-center gap-2">
+                  <Input
+                    id="accent-secondary"
+                    placeholder="#818cf8"
+                    value={accentSecondary}
+                    onChange={(e) => setAccentSecondary(e.target.value)}
+                  />
+                  {accentSecondary && <div className="h-8 w-8 shrink-0 rounded border" style={{ backgroundColor: accentSecondary }} />}
+                </div>
+              </div>
+            </div>
+            <div className="flex justify-end">
+              <Button onClick={() => brandingMutation.mutate()} disabled={brandingMutation.isPending || !configQuery.data}>
+                {brandingMutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                Save Branding
               </Button>
             </div>
           </CardContent>

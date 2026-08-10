@@ -360,7 +360,7 @@ export const orgApi = {
   getOrganization(orgId: string): Promise<Organization> {
     return request<Organization>(`/organizations/${orgId}`);
   },
-  updateOrganization(orgId: string, data: { name?: string; contactEmail?: string }): Promise<Organization> {
+  updateOrganization(orgId: string, data: { name?: string; contactEmail?: string; configProfile?: Record<string, unknown> }): Promise<Organization> {
     return request<Organization>(`/organizations/${orgId}`, {
       method: 'PATCH',
       body: JSON.stringify(data),

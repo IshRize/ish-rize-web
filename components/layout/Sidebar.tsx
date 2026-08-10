@@ -3,6 +3,9 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
+import { useQuery } from '@tanstack/react-query';
+import { schedulingApi } from '@/lib/api';
+import { useScheduleSelectionStore } from '@/stores/scheduleSelectionStore';
 import {
   LayoutDashboard,
   CalendarDays,
@@ -230,6 +233,14 @@ export function Sidebar() {
   const pathname = usePathname();
   const router = useRouter();
   const { user, logout } = useAuthStore();
+  const { organizationId } = useScheduleSelectionStore();
+
+  const configQuery = useQuery({
+    queryKey: ['org-config', organizationId],
+    queryFn: () => schedulingApi.getOrgConfig(organizationId),
+    enabled: !!organizationId,
+  });
+  const logoUrl = configQuery.data?.branding?.logoUrl;
 
   const isAdmin = user?.role === 'ADMIN';
   const isCoordinatorOrAbove = user?.role === 'ADMIN' || user?.role === 'LECTURER';
@@ -249,11 +260,14 @@ export function Sidebar() {
     return (
       <>
         {/* Header */}
-        <div className={cn('flex items-center border-b border-border px-3 py-4', isCollapsed && 'justify-center px-2')}>
+        <div className={cn('flex items-center gap-2 border-b border-border px-3 py-4', isCollapsed && 'justify-center px-2')}>
+          {logoUrl ? (
+            <img src={logoUrl} alt="Org logo" width={28} height={28} className="rounded object-contain" />
+          ) : null}
           {!isCollapsed && (
             <span className="text-lg font-bold tracking-tight text-foreground">IshRize</span>
           )}
-          {isCollapsed && (
+          {isCollapsed && !logoUrl && (
             <span className="text-lg font-bold text-foreground">IR</span>
           )}
         </div>

@@ -36,6 +36,7 @@ export interface OrgConfig {
   // ever org-themeable (see lib/orgTheme.ts). Never extend this to the
   // clash/free/pending tokens; those are fixed system-wide by design.
   branding?: {
+    logoUrl?: string;
     accentPrimary?: string;
     accentPrimaryHover?: string;
     accentSecondary?: string;
