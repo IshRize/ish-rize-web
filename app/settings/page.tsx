@@ -182,7 +182,6 @@ export default function SettingsPage() {
     },
     onError: (err: Error) => toast.error(err.message),
   });
-
   const [exportTime, setExportTime] = useState<string | null>(null);
 
   const exportMutation = useMutation({
@@ -203,7 +202,6 @@ export default function SettingsPage() {
     },
     onError: (err: Error) => toast.error(err.message),
   });
-
   function handleCopyInviteLink() {
     navigator.clipboard.writeText(`${window.location.origin}/accept-invite/${organizationId}`);
     setCopied(true);
@@ -390,7 +388,6 @@ export default function SettingsPage() {
             </div>
           </CardContent>
         </Card>
-
         {/* Data Export (GDPR) */}
         <Card>
           <CardHeader>
