@@ -8,16 +8,16 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
   AlertTriangle,
+  Bell,
   CalendarDays,
   Clock,
-  Layers,
   BookOpen,
   Users2,
 } from 'lucide-react';
-import { schedulingApi, lastResponseTimeMs } from '@/lib/api';
+import { schedulingApi, notificationApi, lastResponseTimeMs } from '@/lib/api';
 import { useAuthStore } from '@/stores/authStore';
 import { useScheduleSelectionStore } from '@/stores/scheduleSelectionStore';
 import { AppShell } from '@/components/layout/AppShell';
@@ -26,7 +26,8 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Button } from '@/components/ui/button';
 import { dayLabel } from '@/lib/dayNames';
-import type { MemberScheduleBooking, Clash } from '@/types/scheduling';
+import { Switch } from '@/components/ui/switch';
+import type { MemberScheduleBooking, Clash, NotificationPreferences } from '@/types/scheduling';
 
 const DAY_ORDER = ['MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT', 'SUN'];
 
@@ -54,6 +55,7 @@ export default function MemberDashboardPage() {
   const { organizationId, termId, setOrganizationId, setTermId } = useScheduleSelectionStore();
   const [scheduleTime, setScheduleTime] = useState<string | null>(null);
   const [clashTime, setClashTime] = useState<string | null>(null);
+  const queryClient = useQueryClient();
 
   useEffect(() => { loadUser(); }, [loadUser]);
   useEffect(() => {
@@ -100,6 +102,18 @@ export default function MemberDashboardPage() {
     enabled: !!termId,
   });
 
+  const prefsQuery = useQuery({
+    queryKey: ['notification-preferences', organizationId],
+    queryFn: () => notificationApi.getPreferences(organizationId),
+    enabled: !!organizationId,
+  });
+
+  const updatePrefs = useMutation({
+    mutationFn: (prefs: Partial<NotificationPreferences>) =>
+      notificationApi.updatePreferences(organizationId, prefs),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['notification-preferences', organizationId] }),
+  });
+
   const isLoading = scheduleQuery.isLoading;
   const groups = scheduleQuery.data?.groups ?? [];
   const bookings = scheduleQuery.data?.bookings ?? [];
@@ -107,7 +121,6 @@ export default function MemberDashboardPage() {
   const sorted = sortBookings(bookings);
   const byDay = groupByDay(sorted);
 
-  const clashSlotIds = new Set(clashes.flatMap((c) => [c.timeSlotId]));
   const clashBookingIds = new Set(clashes.flatMap((c) => c.bookingIds));
 
   const uniqueCourses = [...new Set(bookings.map((b) => b.course.id))];
@@ -256,6 +269,34 @@ export default function MemberDashboardPage() {
                 </li>
               ))}
             </ul>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Notification preferences */}
+      {prefsQuery.data && (
+        <Card className="mt-6">
+          <CardHeader className="flex flex-row items-center gap-2 pb-2">
+            <Bell size={18} className="text-muted-foreground" />
+            <CardTitle className="text-sm font-semibold">Notification Preferences</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-3">
+              {([
+                ['roomChanged', 'Room changes'],
+                ['sessionCancelled', 'Cancelled sessions'],
+                ['sessionAdded', 'New sessions'],
+                ['bookingUpdated', 'Schedule updates'],
+              ] as const).map(([key, label]) => (
+                <div key={key} className="flex items-center justify-between">
+                  <span className="text-sm text-foreground">{label}</span>
+                  <Switch
+                    checked={prefsQuery.data[key]}
+                    onCheckedChange={(checked: boolean) => updatePrefs.mutate({ [key]: checked })}
+                  />
+                </div>
+              ))}
+            </div>
           </CardContent>
         </Card>
       )}

@@ -36,6 +36,7 @@ import { useAuthStore } from '@/stores/authStore';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
+import { NotificationBell } from './NotificationBell';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 
 const STORAGE_KEY = 'ishrize_web_theme';
@@ -272,6 +273,7 @@ export function Sidebar() {
 
         {/* Bottom section */}
         <div className="space-y-1 border-t border-border px-2 py-2">
+          <NotificationBell collapsed={isCollapsed} />
           <NavLink
             item={{ href: '/account/profile', label: 'Account', icon: UserCircle }}
             active={pathname.startsWith('/account')}

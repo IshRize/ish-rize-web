@@ -58,6 +58,8 @@ import type {
   Venue,
   VenueSummary,
   VenueType,
+  NotificationsResponse,
+  NotificationPreferences,
 } from '@/types/scheduling';
 
 const PROXY_BASE = '/api/proxy';
@@ -546,6 +548,35 @@ export const ingestionApi = {
     return request<BookingIngestionCommitResult>('/ingestion/commit', {
       method: 'POST',
       body: JSON.stringify({ termId, orgUnitId, draftBookings }),
+    });
+  },
+};
+
+export const notificationApi = {
+  list(params?: { organizationId?: string; unreadOnly?: boolean; cursor?: string }): Promise<NotificationsResponse> {
+    const qs = new URLSearchParams();
+    if (params?.organizationId) qs.set('organizationId', params.organizationId);
+    if (params?.unreadOnly) qs.set('unreadOnly', 'true');
+    if (params?.cursor) qs.set('cursor', params.cursor);
+    const query = qs.toString();
+    return request<NotificationsResponse>(`/notifications${query ? `?${query}` : ''}`);
+  },
+  markRead(id: string): Promise<void> {
+    return request<void>(`/notifications/${id}/read`, { method: 'PATCH' });
+  },
+  markAllRead(organizationId?: string): Promise<{ markedRead: number }> {
+    return request<{ markedRead: number }>('/notifications/read-all', {
+      method: 'POST',
+      body: JSON.stringify(organizationId ? { organizationId } : {}),
+    });
+  },
+  getPreferences(organizationId: string): Promise<NotificationPreferences> {
+    return request<NotificationPreferences>(`/notifications/preferences?organizationId=${organizationId}`);
+  },
+  updatePreferences(organizationId: string, prefs: Partial<NotificationPreferences>): Promise<NotificationPreferences> {
+    return request<NotificationPreferences>('/notifications/preferences', {
+      method: 'PATCH',
+      body: JSON.stringify({ organizationId, ...prefs }),
     });
   },
 };
