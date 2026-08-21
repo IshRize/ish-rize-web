@@ -9,6 +9,7 @@
  */
 import { create } from 'zustand';
 import { authApi } from '@/lib/api';
+import { analytics } from '@/lib/analytics';
 import type { User } from '@/types/scheduling';
 
 interface AuthState {
@@ -33,6 +34,7 @@ export const useAuthStore = create<AuthState>((set) => ({
     try {
       const { user } = await authApi.login(email, password);
       set({ user, isAuthenticated: true, isLoading: false });
+      analytics.identify(user);
     } catch (err) {
       set({ error: err instanceof Error ? err.message : 'Login failed', isLoading: false });
       throw err;
@@ -42,6 +44,7 @@ export const useAuthStore = create<AuthState>((set) => ({
   async logout() {
     await authApi.logout();
     set({ user: null, isAuthenticated: false });
+    analytics.reset();
   },
 
   async loadUser() {
@@ -49,6 +52,7 @@ export const useAuthStore = create<AuthState>((set) => ({
     try {
       const user = await authApi.me();
       set({ user, isAuthenticated: true, isLoading: false });
+      analytics.identify(user);
     } catch {
       set({ user: null, isAuthenticated: false, isLoading: false });
     }
