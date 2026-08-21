@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { TooltipProvider } from '@/components/ui/tooltip';
 import { Toaster } from '@/components/ui/sonner';
+import { PostHogProvider } from '@/components/posthog-provider';
 
 export function Providers({ children }: { children: React.ReactNode }) {
   const [client] = useState(
@@ -14,10 +15,12 @@ export function Providers({ children }: { children: React.ReactNode }) {
   );
   return (
     <QueryClientProvider client={client}>
-      <TooltipProvider>
-        {children}
-        <Toaster position="bottom-right" richColors closeButton />
-      </TooltipProvider>
+      <PostHogProvider>
+        <TooltipProvider>
+          {children}
+          <Toaster position="bottom-right" richColors closeButton />
+        </TooltipProvider>
+      </PostHogProvider>
     </QueryClientProvider>
   );
 }

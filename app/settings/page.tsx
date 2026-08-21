@@ -9,8 +9,9 @@ import {
   AlertTriangle,
   Check,
 } from 'lucide-react';
-import { schedulingApi, orgApi, sessionApi, lastResponseTimeMs } from '@/lib/api';
-import { Download, Palette, CalendarCheck } from 'lucide-react';
+import { schedulingApi, orgApi, sessionApi, billingApi, lastResponseTimeMs } from '@/lib/api';
+import { Download, Palette, CalendarCheck, CreditCard } from 'lucide-react';
+import { analytics } from '@/lib/analytics';
 import { useAuthStore } from '@/stores/authStore';
 import { useScheduleSelectionStore } from '@/stores/scheduleSelectionStore';
 import type { FeatureFlag, OrgRole } from '@/types/scheduling';
@@ -182,6 +183,27 @@ export default function SettingsPage() {
     },
     onError: (err: Error) => toast.error(err.message),
   });
+  const subscriptionQuery = useQuery({
+    queryKey: ['subscription', organizationId],
+    queryFn: () => billingApi.getSubscription(organizationId),
+    enabled: !!organizationId,
+  });
+
+  const checkoutMutation = useMutation({
+    mutationFn: () => {
+      analytics.checkoutStarted({ plan: 'pro' });
+      return billingApi.createCheckout(organizationId);
+    },
+    onSuccess: ({ url }) => { window.location.href = url; },
+    onError: (err: Error) => toast.error(err.message),
+  });
+
+  const portalMutation = useMutation({
+    mutationFn: () => billingApi.createPortal(organizationId),
+    onSuccess: ({ url }) => { window.location.href = url; },
+    onError: (err: Error) => toast.error(err.message),
+  });
+
   const [exportTime, setExportTime] = useState<string | null>(null);
 
   const exportMutation = useMutation({
@@ -388,6 +410,53 @@ export default function SettingsPage() {
             </div>
           </CardContent>
         </Card>
+        {/* Billing */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <CreditCard className="h-5 w-5" /> Billing
+            </CardTitle>
+            <CardDescription>Manage your subscription and billing</CardDescription>
+          </CardHeader>
+          <CardContent>
+            {subscriptionQuery.isLoading ? (
+              <p className="text-sm text-muted-foreground">Loading...</p>
+            ) : (
+              <div className="flex items-center justify-between gap-4">
+                <div>
+                  <p className="text-sm font-medium text-foreground">
+                    Current plan: <span className="capitalize">{subscriptionQuery.data?.subscription?.plan ?? 'free'}</span>
+                  </p>
+                  <p className="text-sm text-muted-foreground">
+                    {subscriptionQuery.data?.subscription?.plan === 'free'
+                      ? 'Upgrade to Pro for advanced features.'
+                      : `Status: ${subscriptionQuery.data?.subscription?.status?.toLowerCase() ?? 'active'}`}
+                  </p>
+                  {subscriptionQuery.data?.subscription?.currentPeriodEnd && (
+                    <p className="mt-1 text-xs text-muted-foreground">
+                      {subscriptionQuery.data.subscription.cancelAtPeriodEnd ? 'Cancels' : 'Renews'} on{' '}
+                      {new Date(subscriptionQuery.data.subscription.currentPeriodEnd).toLocaleDateString()}
+                    </p>
+                  )}
+                </div>
+                <div className="flex shrink-0 gap-2">
+                  {subscriptionQuery.data?.subscription?.plan === 'free' ? (
+                    <Button onClick={() => checkoutMutation.mutate()} disabled={checkoutMutation.isPending}>
+                      {checkoutMutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                      Upgrade to Pro
+                    </Button>
+                  ) : (
+                    <Button variant="outline" onClick={() => portalMutation.mutate()} disabled={portalMutation.isPending}>
+                      {portalMutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                      Manage Billing
+                    </Button>
+                  )}
+                </div>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
         {/* Data Export (GDPR) */}
         <Card>
           <CardHeader>

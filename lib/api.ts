@@ -609,4 +609,27 @@ export const sessionApi = {
   },
 };
 
+export interface SubscriptionInfo {
+  plan: string;
+  status: string;
+  currentPeriodEnd?: string;
+  cancelAtPeriodEnd?: boolean;
+}
+
+export const billingApi = {
+  getSubscription(organizationId: string): Promise<{ subscription: SubscriptionInfo }> {
+    return request<{ subscription: SubscriptionInfo }>(`/billing/${organizationId}/subscription`);
+  },
+  createCheckout(organizationId: string): Promise<{ url: string }> {
+    return request<{ url: string }>(`/billing/${organizationId}/subscription/checkout`, {
+      method: 'POST',
+    });
+  },
+  createPortal(organizationId: string): Promise<{ url: string }> {
+    return request<{ url: string }>(`/billing/${organizationId}/subscription/portal`, {
+      method: 'POST',
+    });
+  },
+};
+
 export type { TimeSlot };
